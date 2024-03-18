@@ -65,13 +65,41 @@ test_dataset = test_dataset.map(load_image_train)
 test_dataset = test_dataset.batch(BATCH_SIZE)
 test_dataset = test_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
+import numpy
+import math
+import cv2
+
+def psnr_loss(input, stage1, stage2):
+    # ref=cv2.imread(input)
+    # dist=cv2.imread(stage1)
+
+    ref= input
+    dist=stage1
+    mse =numpy.mean((ref-dist)**2) #mse 구하기
+    
+    if mse ==0:
+        return 100
+    else:
+        PIXEL_MAX = 255.0
+        psnr_value1 = 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+        ref =stage1
+        dist=stage2
+        mse =numpy.mean((ref-dist)**2)
+        if mse ==0:
+            return 100
+        else:
+            PIXEL_MAX = 255.0
+            psnr_value2 = 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
+            total_psnr_loss =psnr_value1+psnr_value2
+            return total_psnr_loss
 
 def generator_loss(input, stage1, stage2, neg):
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
     gen_hinge_loss = -tf.reduce_mean(neg)
-    total_gen_loss = gen_hinge_loss + gen_l1_loss
-    return total_gen_loss, gen_hinge_loss, gen_l1_loss
+    psnr_loss1 = psnr_loss(input, stage1, stage2)
+    total_gen_loss = gen_hinge_loss + gen_l1_loss + psnr_loss1
+    return total_gen_loss, gen_hinge_loss, gen_l1_loss ,psnr_loss1
 
 def dicriminator_loss(pos, neg):
     hinge_pos = tf.reduce_mean(tf.nn.relu(1.0 - pos)) #ειναι tf.nn.relu γιατι θελουμε max(features,0) απο hinge
