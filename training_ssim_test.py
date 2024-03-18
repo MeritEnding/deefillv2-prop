@@ -81,7 +81,7 @@ def ssim_loss(input,stage1,stage2,neg):
     model = SSIM(channels=3)
     ssim_loss1 = model(dist, ref, as_loss=False)
 
-    ref_path = stage1
+    ref_path = input
     dist_path = stage2
 
     ref = utils.prepare_image(Image.open(ref_path).convert("RGB")).to(device)
@@ -139,7 +139,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss, total_ssim_loss = generator_loss(input, stage1, stage2, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
@@ -150,7 +150,7 @@ def train_step(input, mask):
                                           generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,
                                               discriminator.trainable_variables))
-  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss, total_ssim_loss
+  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss
 
 
 def fit(train_ds, epochs, test_ds):
@@ -169,13 +169,13 @@ def fit(train_ds, epochs, test_ds):
         print(f"Loaded CSV from step: {int(checkpoint.step)}")
     else:
         print("Initializing from scratch.")
-        g_total, g_hinge, g_l1, d,ssim = [], [], [], [], []
+        g_total, g_hinge, g_l1, d,ssim = [], [], [], [],[]
 
     for ep in trange(epochs):
         start = time.time()
 
         checkpoint.step.assign_add(1)
-        g_total_b, g_hinge_b, g_l1_b, d_b, s_b = 0, 0, 0, 0, 0
+        g_total_b, g_hinge_b, g_l1_b, d_b, s_b = 0, 0, 0, 0,0
         count = len(train_ds)
 	# Train
         for input_image in tqdm(train_ds):
