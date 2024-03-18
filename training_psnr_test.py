@@ -77,13 +77,13 @@ def psnr_loss(input, stage1, stage2):
     dist=stage1
     mse =numpy.mean((ref-dist)**2) #mse 구하기
     
-    if mse ==0:
+    if mse == 0:
         return 100
     else:
         PIXEL_MAX = 255.0
         psnr_value1 = 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
-        ref =stage1
-        dist=stage2
+        ref = input
+        dist= stage2
         mse =numpy.mean((ref-dist)**2)
         if mse ==0:
             return 100
