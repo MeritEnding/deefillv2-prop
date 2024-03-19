@@ -85,7 +85,7 @@ def psnr_score(input, stage1, stage2):
             PIXEL_MAX =255.0
             psnr2 =20 * math.log10(PIXEL_MAX/ math.sqrt(mse))
 
-    psnr_score1 = psnr1+psnr2 / 2
+    psnr_score1 = (psnr1+psnr2) / 2
     return psnr_score1
 
 
