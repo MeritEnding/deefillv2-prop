@@ -69,37 +69,33 @@ import numpy
 import math
 import cv2
 
-def psnr_loss(input, stage1, stage2):
-    # ref=cv2.imread(input)
-    # dist=cv2.imread(stage1)
-
-    ref= input
-    dist=stage1
-    mse =numpy.mean((ref-dist)**2) #mse 구하기
-    
-    if mse ==0:
+def psnr_score(input, stage1, stage2):
+    # original =cv2.imread(input)
+    # contrast =cv2.imread(stage1)
+    mse =numpy.mean((input -  stage1) **2)
+    if mse == 0:
         return 100
     else:
-        PIXEL_MAX = 255.0
-        psnr_value1 = 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
-        ref =stage1
-        dist=stage2
-        mse =numpy.mean((ref-dist)**2)
+        PIXEL_MAX =255.0
+        psnr1= 20 * math.log10(PIXEL_MAX/ math.sqrt(mse))
+        mse =numpy.mean((input - stage2) **2)
         if mse ==0:
             return 100
         else:
-            PIXEL_MAX = 255.0
-            psnr_value2 = 20 * math.log10(PIXEL_MAX / math.sqrt(mse))
-            total_psnr_loss =psnr_value1+psnr_value2
-            return total_psnr_loss
+            PIXEL_MAX =255.0
+            psnr2 =20 * math.log10(PIXEL_MAX/ math.sqrt(mse))
+
+    psnr_score1 = psnr1+psnr2 / 2
+    return psnr_score1
+
 
 def generator_loss(input, stage1, stage2, neg):
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
     gen_hinge_loss = -tf.reduce_mean(neg)
-    psnr_loss1 = psnr_loss(input, stage1, stage2)
-    total_gen_loss = gen_hinge_loss + gen_l1_loss + psnr_loss1
-    return total_gen_loss, gen_hinge_loss, gen_l1_loss ,psnr_loss1
+    psnr_score1=psnr_score(input, stage1, stage2)
+    total_gen_loss = gen_hinge_loss + gen_l1_loss
+    return total_gen_loss, gen_hinge_loss, gen_l1_loss, psnr_score1
 
 def dicriminator_loss(pos, neg):
     hinge_pos = tf.reduce_mean(tf.nn.relu(1.0 - pos)) #ειναι tf.nn.relu γιατι θελουμε max(features,0) απο hinge
@@ -139,7 +135,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss, psnr_score1 = generator_loss(input, stage1, stage2, neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
@@ -150,13 +146,13 @@ def train_step(input, mask):
                                           generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,
                                               discriminator.trainable_variables))
-  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss
+  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss, psnr_score1
 
 
 def fit(train_ds, epochs, test_ds):
     checkpoint.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        g_total, g_hinge, g_l1, d = [], [], [], []
+        g_total, g_hinge, g_l1, d,psnr = [], [], [], [], []
         print("Restored from {}".format(manager.latest_checkpoint))
         df_load = pd.read_csv(f'./CSV_loss/loss_{int(checkpoint.step)}.csv', delimiter=',')
 
@@ -164,38 +160,42 @@ def fit(train_ds, epochs, test_ds):
         g_hinge.extend(CSV_reader(df_load['g_hinge'].tolist()))
         g_l1.extend(CSV_reader(df_load['g_l1'].tolist()))
         d.extend(CSV_reader(df_load['d'].tolist()))
+        psnr.extend(CSV_reader(df_load['psnr'].tolist()))
 
         print(f"Loaded CSV from step: {int(checkpoint.step)}")
     else:
         print("Initializing from scratch.")
-        g_total, g_hinge, g_l1, d = [], [], [], []
+        g_total, g_hinge, g_l1, d ,psnr = [], [], [], [], []
 
     for ep in trange(epochs):
         start = time.time()
 
         checkpoint.step.assign_add(1)
-        g_total_b, g_hinge_b, g_l1_b, d_b = 0, 0, 0, 0
+        g_total_b, g_hinge_b, g_l1_b, d_b, p_b = 0, 0, 0, 0, 0
         count = len(train_ds)
 	# Train
         for input_image in tqdm(train_ds):
             mask = create_mask(FLAGS)
-            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss = train_step(input_image, mask)
+            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss, psnr_score1 = train_step(input_image, mask)
             g_total_b += total_gen_loss
             g_hinge_b += gen_hinge_loss
             g_l1_b += gen_l1_loss
             d_b += dis_loss
+            p_b += psnr_score1
         g_total.append(g_total_b/count)
         g_hinge.append(g_hinge_b/count)
         g_l1.append(g_l1_b/count)
         d.append(d_b/count)
+        psnr.append(p_b/count)
 
         check_step = int(checkpoint.step)
-        plot_history(g_total, g_hinge, g_l1, d, check_step)
+        plot_history(g_total, g_hinge, g_l1, d, psnr ,check_step)
 
         dict1 = {'g_total': g_total,
                  'g_hinge': g_hinge,
                  'g_l1': g_l1,
-                 'd': d}
+                 'd': d,
+                 'psnr': psnr}
 
         gt = pd.DataFrame(dict1)
         gt.to_csv(f'./CSV_loss/loss_{check_step}.csv', index=False)
