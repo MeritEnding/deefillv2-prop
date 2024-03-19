@@ -13,7 +13,7 @@ from utils import *
 from config import *
 
 
-tf.random.set_seed(20)
+tf.random.set_seed(100)
 tf.config.run_functions_eagerly(True)
 
 FLAGS = Config('./inpaint.yml')
@@ -65,7 +65,6 @@ test_dataset = test_dataset.map(load_image_train)
 test_dataset = test_dataset.batch(BATCH_SIZE)
 test_dataset = test_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-
 import numpy
 from numpy import cov
 from numpy import trace
@@ -99,13 +98,11 @@ def fid_score(input,stage1,stage2):
 
     return fid_score1
 
-
-def generator_loss(input, stage1, stage2, stage3, neg):
+def generator_loss(input, stage1, stage2, neg):
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
-    gen_l1_loss += tf.reduce_mean(tf.abs(input - stage3))
     gen_hinge_loss = -tf.reduce_mean(neg)
-    fid_score1 = fid_score(input,stage1,stage2)
+    fid_score1= fid_score(input, stage1, stage2);
     total_gen_loss = gen_hinge_loss + gen_l1_loss
     return total_gen_loss, gen_hinge_loss, gen_l1_loss ,fid_score1
 
@@ -137,9 +134,9 @@ def train_step(input, mask):
 
     batch_incomplete = input*(1.-mask)
 
-    stage1, stage2, stage3, _, _ = generator(batch_incomplete, mask, training=True)
+    stage1, stage2, _ = generator(batch_incomplete, mask, training=True)
 
-    batch_complete = stage3*mask + batch_incomplete*(1.-mask)
+    batch_complete = stage2*mask + batch_incomplete*(1.-mask)
     batch_pos_neg = tf.concat([input, batch_complete], axis=0)
     if FLAGS.gan_with_mask:
         batch_pos_neg = tf.concat([batch_pos_neg, tf.tile(mask, [FLAGS.batch_size*2, 1, 1, 1])], axis=3)
@@ -147,7 +144,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss ,fid_score1= generator_loss(input, stage1, stage2, stage3, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss,fid_score1 = generator_loss(input, stage1, stage2, neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
@@ -158,13 +155,13 @@ def train_step(input, mask):
                                           generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,
                                               discriminator.trainable_variables))
-  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss, fid_score1
+  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss ,fid_score1
 
 
 def fit(train_ds, epochs, test_ds):
     checkpoint.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        g_total, g_hinge, g_l1, d ,fid = [], [], [], [], []
+        g_total, g_hinge, g_l1, d, fid = [], [], [], [], []
         print("Restored from {}".format(manager.latest_checkpoint))
         df_load = pd.read_csv(f'./CSV_loss/loss_{int(checkpoint.step)}.csv', delimiter=',')
 
@@ -173,22 +170,21 @@ def fit(train_ds, epochs, test_ds):
         g_l1.extend(CSV_reader(df_load['g_l1'].tolist()))
         d.extend(CSV_reader(df_load['d'].tolist()))
         fid.extend(CSV_reader(df_load['fid'].tolist()))
-
         print(f"Loaded CSV from step: {int(checkpoint.step)}")
     else:
         print("Initializing from scratch.")
-        g_total, g_hinge, g_l1, d, fid = [], [], [], [], []
+        g_total, g_hinge, g_l1, d ,fid= [], [], [], [], []
 
     for ep in trange(epochs):
         start = time.time()
 
         checkpoint.step.assign_add(1)
-        g_total_b, g_hinge_b, g_l1_b, d_b,f_b = 0, 0, 0, 0, 0
+        g_total_b, g_hinge_b, g_l1_b, d_b ,f_b= 0, 0, 0, 0, 0
         count = len(train_ds)
 	# Train
         for input_image in tqdm(train_ds):
             mask = create_mask(FLAGS)
-            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss ,fid_score1 = train_step(input_image, mask)
+            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss,fid_score1 = train_step(input_image, mask)
             g_total_b += total_gen_loss
             g_hinge_b += gen_hinge_loss
             g_l1_b += gen_l1_loss
@@ -201,14 +197,13 @@ def fit(train_ds, epochs, test_ds):
         fid.append(f_b/count)
 
         check_step = int(checkpoint.step)
-        plot_history(g_total, g_hinge, g_l1, d, check_step ,fid)
+        plot_history(g_total, g_hinge, g_l1, d, check_step, fid)
 
         dict1 = {'g_total': g_total,
                  'g_hinge': g_hinge,
                  'g_l1': g_l1,
                  'd': d,
-                 'fid':fid
-                 }
+                 'fid':fid}
 
         gt = pd.DataFrame(dict1)
         gt.to_csv(f'./CSV_loss/loss_{check_step}.csv', index=False)
