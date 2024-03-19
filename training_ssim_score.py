@@ -69,37 +69,27 @@ from IQA_pytorch import SSIM, utils
 from PIL import Image
 import torch
 
-def ssim_loss(input,stage1,stage2,neg):
-    device =torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+def ssim_score(input,stage1):
+    device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     ref_path=input
     dist_path=stage1
 
-    ref=utils.prepare_image(Image.open(ref_path).convert("RGB")).to(device)
-    dist =utils.prepare_image(Image.open(dist_path).convert("RGB").to(device))
+    ref= utils.prepare_image(Image.open(ref_path).convert("RGB"))
+    dist=utils.prepare_image(Image.open(dist_path).convert("RGB"))
 
-    model = SSIM(channels=3)
-    ssim_loss1 = model(dist, ref, as_loss=False)
+    model=SSIM(channels=3)
 
-    ref_path = stage1
-    dist_path = stage2
+    ssim_score1=model(dist, ref,as_loss =False)
 
-    ref = utils.prepare_image(Image.open(ref_path).convert("RGB")).to(device)
-    dist = utils.prepare_image(Image.open(dist_path).convert("RGB").to(device))
-
-    model =SSIM(channels=3)
-    ssim_loss2 =model(dist,ref,as_loss=False)
-    return ssim_loss1, ssim_loss2
-
+    return ssim_score1
 def generator_loss(input, stage1, stage2, neg):
-
-    ssim_loss1, ssim_loss2 = ssim_loss(input, stage1, stage2)
-    total_ssim_loss= ssim_loss1+ssim_loss2
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
     gen_hinge_loss = -tf.reduce_mean(neg)
-    total_gen_loss = gen_hinge_loss + gen_l1_loss + total_ssim_loss
-    return total_gen_loss, gen_hinge_loss, gen_l1_loss
+    total_gen_loss = gen_hinge_loss + gen_l1_loss
+    ssim_score1=ssim_score(input, stage1)
+    return total_gen_loss, gen_hinge_loss, gen_l1_loss,ssim_score1
 
 def dicriminator_loss(pos, neg):
     hinge_pos = tf.reduce_mean(tf.nn.relu(1.0 - pos)) #ειναι tf.nn.relu γιατι θελουμε max(features,0) απο hinge
@@ -139,7 +129,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss, ssim_score1 = generator_loss(input, stage1, stage2, neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
@@ -150,13 +140,13 @@ def train_step(input, mask):
                                           generator.trainable_variables))
   discriminator_optimizer.apply_gradients(zip(discriminator_gradients,
                                               discriminator.trainable_variables))
-  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss
+  return total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss, ssim_score1
 
 
 def fit(train_ds, epochs, test_ds):
     checkpoint.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        g_total, g_hinge, g_l1, d = [], [], [], []
+        g_total, g_hinge, g_l1, d ,ssim = [], [], [], [], []
         print("Restored from {}".format(manager.latest_checkpoint))
         df_load = pd.read_csv(f'./CSV_loss/loss_{int(checkpoint.step)}.csv', delimiter=',')
 
@@ -164,17 +154,18 @@ def fit(train_ds, epochs, test_ds):
         g_hinge.extend(CSV_reader(df_load['g_hinge'].tolist()))
         g_l1.extend(CSV_reader(df_load['g_l1'].tolist()))
         d.extend(CSV_reader(df_load['d'].tolist()))
+        ssim.extend(CSV_reader(df_load['ssim'].tolist()))
 
         print(f"Loaded CSV from step: {int(checkpoint.step)}")
     else:
         print("Initializing from scratch.")
-        g_total, g_hinge, g_l1, d = [], [], [], []
+        g_total, g_hinge, g_l1, d, ssim = [], [], [], [], []
 
     for ep in trange(epochs):
         start = time.time()
 
         checkpoint.step.assign_add(1)
-        g_total_b, g_hinge_b, g_l1_b, d_b = 0, 0, 0, 0
+        g_total_b, g_hinge_b, g_l1_b, d_b,ssim_b = 0, 0, 0, 0, 0
         count = len(train_ds)
 	# Train
         for input_image in tqdm(train_ds):
@@ -184,18 +175,21 @@ def fit(train_ds, epochs, test_ds):
             g_hinge_b += gen_hinge_loss
             g_l1_b += gen_l1_loss
             d_b += dis_loss
+            ssim_b += ssim_score
         g_total.append(g_total_b/count)
         g_hinge.append(g_hinge_b/count)
         g_l1.append(g_l1_b/count)
         d.append(d_b/count)
+        ssim.append(ssim_b/count)
 
         check_step = int(checkpoint.step)
-        plot_history(g_total, g_hinge, g_l1, d, check_step)
+        plot_history(g_total, g_hinge, g_l1, d, ssim, check_step)
 
         dict1 = {'g_total': g_total,
                  'g_hinge': g_hinge,
                  'g_l1': g_l1,
-                 'd': d}
+                 'd': d,
+                 'ssim':ssim}
 
         gt = pd.DataFrame(dict1)
         gt.to_csv(f'./CSV_loss/loss_{check_step}.csv', index=False)
