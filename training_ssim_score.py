@@ -170,7 +170,7 @@ def fit(train_ds, epochs, test_ds):
 	# Train
         for input_image in tqdm(train_ds):
             mask = create_mask(FLAGS)
-            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss = train_step(input_image, mask)
+            total_gen_loss, gen_hinge_loss, gen_l1_loss, dis_loss ,ssim_score1= train_step(input_image, mask)
             g_total_b += total_gen_loss
             g_hinge_b += gen_hinge_loss
             g_l1_b += gen_l1_loss
