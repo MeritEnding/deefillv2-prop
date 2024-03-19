@@ -69,7 +69,7 @@ from IQA_pytorch import SSIM, utils
 from PIL import Image
 import torch
 
-def ssim_score(input,stage1):
+def ssim_score(input, stage1, stage2):
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     ref_path=input
@@ -80,7 +80,18 @@ def ssim_score(input,stage1):
 
     model=SSIM(channels=3)
 
-    ssim_score1=model(dist, ref,as_loss =False)
+    ssim_score_stage1=model(dist, ref,as_loss =False)
+
+    ref_path = input
+    dist_path = stage2
+
+    ref = utils.prepare_image(Image.open(ref_path).convert("RGB"))
+    dist = utils.prepare_image(Image.open(dist_path).convert("RGB"))
+
+    model = SSIM(channels=3)
+
+    ssim_score_stage2 = model(dist, ref, as_loss=False)
+    ssim_score1= ssim_score_stage1 + ssim_score_stage2 / 2
 
     return ssim_score1
 def generator_loss(input, stage1, stage2, neg):
