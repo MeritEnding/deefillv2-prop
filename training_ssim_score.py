@@ -91,7 +91,7 @@ def ssim_score(input, stage1, stage2):
     model = SSIM(channels=3)
 
     ssim_score_stage2 = model(dist, ref, as_loss=False)
-    ssim_score1= ssim_score_stage1 + ssim_score_stage2 / 2
+    ssim_score1= (ssim_score_stage1 + ssim_score_stage2) / 2
 
     return ssim_score1
 def generator_loss(input, stage1, stage2, neg):
