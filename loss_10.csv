@@ -1,0 +1,11 @@
+g_total,g_hinge,g_l1,d,psnr
+"tf.Tensor(0.6722967, shape=(), dtype=float32)","tf.Tensor(-0.0014218028, shape=(), dtype=float32)","tf.Tensor(0.6737176, shape=(), dtype=float32)","tf.Tensor(0.99996406, shape=(), dtype=float32)",55.53357642333165
+"tf.Tensor(0.4138601, shape=(), dtype=float32)","tf.Tensor(-0.001449106, shape=(), dtype=float32)","tf.Tensor(0.41530937, shape=(), dtype=float32)","tf.Tensor(0.9999805, shape=(), dtype=float32)",58.68157426056663
+"tf.Tensor(0.3310249, shape=(), dtype=float32)","tf.Tensor(-0.0014596452, shape=(), dtype=float32)","tf.Tensor(0.33248454, shape=(), dtype=float32)","tf.Tensor(0.9999857, shape=(), dtype=float32)",60.223179034937
+"tf.Tensor(0.29611987, shape=(), dtype=float32)","tf.Tensor(-0.0014651446, shape=(), dtype=float32)","tf.Tensor(0.29758498, shape=(), dtype=float32)","tf.Tensor(0.9999882, shape=(), dtype=float32)",60.9647920796301
+"tf.Tensor(0.27835193, shape=(), dtype=float32)","tf.Tensor(-0.0014668013, shape=(), dtype=float32)","tf.Tensor(0.27981853, shape=(), dtype=float32)","tf.Tensor(0.99998844, shape=(), dtype=float32)",61.371448892975295
+"tf.Tensor(0.2675708, shape=(), dtype=float32)","tf.Tensor(-0.0014682234, shape=(), dtype=float32)","tf.Tensor(0.2690389, shape=(), dtype=float32)","tf.Tensor(0.99998915, shape=(), dtype=float32)",61.6279451796762
+"tf.Tensor(0.25909266, shape=(), dtype=float32)","tf.Tensor(-0.0014694524, shape=(), dtype=float32)","tf.Tensor(0.26056188, shape=(), dtype=float32)","tf.Tensor(0.99998975, shape=(), dtype=float32)",61.838227859934456
+"tf.Tensor(0.25372377, shape=(), dtype=float32)","tf.Tensor(-0.0014719607, shape=(), dtype=float32)","tf.Tensor(0.25519553, shape=(), dtype=float32)","tf.Tensor(0.99998987, shape=(), dtype=float32)",61.96152161380966
+"tf.Tensor(0.2470835, shape=(), dtype=float32)","tf.Tensor(-0.001474691, shape=(), dtype=float32)","tf.Tensor(0.24855797, shape=(), dtype=float32)","tf.Tensor(0.99999136, shape=(), dtype=float32)",62.156155301728724
+"tf.Tensor(0.24336635, shape=(), dtype=float32)","tf.Tensor(-0.0014755115, shape=(), dtype=float32)","tf.Tensor(0.24484214, shape=(), dtype=float32)","tf.Tensor(0.999991, shape=(), dtype=float32)",62.25415102973933
