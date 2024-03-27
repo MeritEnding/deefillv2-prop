@@ -1,2 +1,0 @@
-g_total,g_hinge,g_l1,d
-"tf.Tensor(0.6837937, shape=(), dtype=float32)","tf.Tensor(-0.0013212829, shape=(), dtype=float32)","tf.Tensor(0.685115, shape=(), dtype=float32)","tf.Tensor(0.99996895, shape=(), dtype=float32)"
