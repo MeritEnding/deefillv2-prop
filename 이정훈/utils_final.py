@@ -47,6 +47,8 @@ from skimage.transform import resize
 
 
 # scale an array of images to a new size
+
+# scale an array of images to a new size
 def scale_images(images, new_shape):
     images_list = list()
     # print("size of images =", len(images))
@@ -146,16 +148,31 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
     # psnr코드2
     # input vs stage2
     cal_psnr = psnr(input[0], batch_predict[0])
+    # input vs inpainted image
     cal_psnr1 = psnr(input[0], batch_complete[0])
-    cal_psnr2 = psnr(input_mask, stage2_mask)
+    # input mask vs stage2 mask
+
+
+
+
+    cal_psnr2 = psnr(input[0]* mask, batch_predict[0]*mask)
+    cal_psnr3 = psnr(input[0] * mask, batch_complete[0] * mask)
+    cal_psnr4 = psnr(input[0] * mask, batch_predict * mask)
+    cal_psnr5= psnr(input[0]*mask , batch_complete[0] * (1 - mask) + batch_predict[0] * mask)
+
     print('PSNR: input vs stage2 = %.4f' % cal_psnr)
     print('PSNR: input vs inpainted= %.4f' % cal_psnr1)
     print('PSNR: input_mask vs stage2_mask = %.4f' % cal_psnr2)
-
+    print('PSNR: input_mask vs inpainted_mask = %.4f' % cal_psnr3)
+    '''true'''
+    print('PSNR: test1 =%.4f' % cal_psnr4)
+    '''true'''
+    print('PSNR: test2=%.4f' % cal_psnr5)
     # ssim 코드2
     imageA = input[0]
     imageB = batch_complete[0]
     imageC = batch_predict[0]
+
     imageA = ((imageA.numpy() + 1.) * 127.5).astype("uint8")
     imageB = ((imageB.numpy() + 1.) * 127.5).astype("uint8")
     imageC = ((imageC.numpy() + 1.) * 127.5).astype("uint8")
@@ -170,7 +187,32 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
     (score1, diff1) = ssim(grayA, grayC, full=True)
     print("SSIM: input vs stage2 = {}".format(score1))
 
+    # fid코드2
+    # prepare the inception v3 model
+    model = InceptionV3(include_top=False, pooling='avg', input_shape=(299, 299, 3))
 
+    # define two fake collections of images
+    images1 = input
+    images2 = batch_complete
+    images3 = batch_predict
+    print('Prepared(images1, images2)', images1.shape, images2.shape)
+    print('Prepared(images1, images3)', images1.shape, images3.shape)
+
+    # resize images
+    images1 = scale_images(images1, (299, 299, 3))
+    images2 = scale_images(images2, (299, 299, 3))
+    images3 = scale_images(images3, (299, 299, 3))
+    print('Scaled(images1, images2)', images1.shape, images2.shape)
+    print('Scaled(images1, images3)', images1.shape, images3.shape)
+
+    # pre-process images
+    images1 = preprocess_input(images1)
+    images2 = preprocess_input(images2)
+    images3 = preprocess_input(images3)
+    fid = calculate_fid(model, images1, images2)
+    fid1 = calculate_fid(model, images1, images3)
+    print('FID (input vs inpainted): %.3f' % fid)
+    print('FID (input vs stage2): %.3f' % fid1)
 
     # 교정: 아래 1/2/4/5라인
     display_list = [input[0], batch_incomplete[0], stage1[0], stage2[0], batch_complete[0], offset_flow[0]]
