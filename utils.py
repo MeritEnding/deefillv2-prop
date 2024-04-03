@@ -7,7 +7,6 @@ import datetime
 
 from config import Config
 
-
 """
 이 코드는 TensorFlow를 사용하여 이미지 인페인팅을 위한 마스크를 생성하는 기능을 구현합니다.
 이미지에서 일정 영역을 무작위로 선택하고, 선택한 영역에 대한 정규 마스크와 브러시 스트로크 마스크를 생성하여 결합하여 최종 마스크를 반환합니다.
@@ -22,15 +21,38 @@ img_shape = FLAGS.img_shapes
 IMG_HEIGHT = img_shape[0]
 IMG_WIDTH = img_shape[1]
 
+
+# psnr코드
+import numpy
+
+
+def psnr(img1, img2):
+    input = tf.clip_by_value((img1.numpy() * 0.5 + 0.5), 0., 1.)
+    out = tf.clip_by_value((img2.numpy() * 0.5 + 0.5), 0., 1.)
+    mse = numpy.mean((input - out) ** 2)
+    print("mse: ", mse)
+    if mse == 0:
+        return 100
+    return 10 * math.log10(1. / mse)
+
+
+# ssim 코드1
+from skimage.metrics import structural_similarity as ssim
+import imutils
+import cv2
+
+
 # 이미지를 로드하는 함수입니다.
 def load(img):
     img = tf.io.read_file(img)
     img = tf.image.decode_jpeg(img)
     return tf.cast(img, tf.float32)
 
+
 # 이미지를 정규화하는 함수입니다.
 def normalize(img):
     return (img / 127.5) - 1.
+
 
 # 학습용 이미지를 로드하는 함수입니다.
 def load_image_train(img):
@@ -38,16 +60,19 @@ def load_image_train(img):
     img = resize_pipeline(img, IMG_HEIGHT, IMG_WIDTH)
     return normalize(img)
 
+
 # 이미지를 리사이즈하는 파이프라인입니다.
 def resize_pipeline(img, height, width):
     return tf.image.resize(img, [height, width],
                            method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+
 
 # CSV 파일을 읽어들이는 함수입니다.
 def CSV_reader(input):
     import re
     input = [i.split('tf.Tensor(')[1].split(', shape')[0] for i in input]
     return tf.strings.to_number(input)
+
 
 # 마스크를 생성하는 함수입니다.
 def create_mask(FLAGS):
@@ -97,6 +122,51 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
     batch_predict = stage2
     # 마스크를 적용한 예측 결과와 마스크가 적용되지 않은 부분 입력 이미지를 결합하여 완전한 이미지 생성
     batch_complete = batch_predict * mask + batch_incomplete * (1 - mask)
+
+    # input_mask vs stage2_mask
+    '''
+    input_mask= input[0] * mask[0]
+    stage2_mask = batch_predict[0] * mask[0]
+    '''
+    input_mask = input[0] * mask
+    stage2_mask = batch_predict[0] * mask
+
+    # psnr코드2
+    # input vs stage2
+    cal_psnr = psnr(input[0], batch_predict[0])
+    # input vs inpainted image
+    cal_psnr1 = psnr(input[0], batch_complete[0])
+    # input mask vs stage2 mask
+
+    cal_psnr2 = psnr(input[0] * mask, batch_predict[0] * mask)
+    cal_psnr3 = psnr(input[0] * mask, batch_complete[0] * mask)
+    cal_psnr4 = psnr(input[0] * mask, batch_predict * mask)
+    cal_psnr5 = psnr(input[0] * mask, batch_complete[0] * (1 - mask) + batch_predict[0] * mask)
+
+    print('PSNR: input vs stage2 = %.4f' % cal_psnr)
+    print('PSNR: input vs inpainted= %.4f' % cal_psnr1)
+
+    print('PSNR: input_mask vs stage2_mask  =%.4f' % cal_psnr4)
+
+    print('PSNR: input_mask vs stage2_mask(test)=%.4f' % cal_psnr5)
+    # ssim 코드2
+    imageA = input[0]
+    imageB = batch_complete[0]
+    imageC = batch_predict[0]
+
+    imageA = ((imageA.numpy() + 1.) * 127.5).astype("uint8")
+    imageB = ((imageB.numpy() + 1.) * 127.5).astype("uint8")
+    imageC = ((imageC.numpy() + 1.) * 127.5).astype("uint8")
+    grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+    grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+    grayC = cv2.cvtColor(imageC, cv2.COLOR_BGR2GRAY)
+
+    (score, diff) = ssim(grayA, grayB, full=True)
+
+    print("SSIM: input vs inpainted = {}".format(score))
+
+    (score1, diff1) = ssim(grayA, grayC, full=True)
+    print("SSIM: input vs stage2 = {}".format(score1))
 
     # 시각화할 이미지 목록 및 제목 설정
     display_list = [input[0], batch_incomplete[0], stage1[0], stage2[0], batch_complete[0], offset_flow[0]]
@@ -213,8 +283,8 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1, fuse_k=3, s
     tf.reshape(): 추출된 패치를 원하는 형태로 재구성합니다. 이 경우 패치를 텐서의 리스트로 변환하여 저장합니다.
     tf.transpose(): 재구성된 패치의 차원을 변경합니다. 이 코드는 패치를 텐서의 마지막 차원으로 이동하여 텐서를 더 쉽게 처리할 수 있도록 합니다.
     이 과정을 통해 배경 이미지에서 추출된 패치가 필요한 형태로 구성되어 있습니다.
-    
-    
+
+
     """
     kernel = 2 * rate
     raw_w = tf.image.extract_patches(
@@ -257,8 +327,6 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1, fuse_k=3, s
     w = tf.reshape(w, [int_fs[0], -1, ksize, ksize, int_fs[3]])
     w = tf.transpose(w, [0, 2, 3, 4, 1])  # b*k*k*c*hw 형태로 변환합니다.
 
-
-
     """
     이 코드 블록은 주어진 마스크에서 패치를 추출하고, 
     패치들의 평균값을 계산하여 마스크를 생성합니다. 
@@ -295,7 +363,6 @@ def contextual_attention(f, b, mask=None, ksize=3, stride=1, rate=1, fuse_k=3, s
     scale = softmax_scale
     k = fuse_k
     fuse_weight = tf.reshape(tf.eye(k), [k, k, 1, 1])  # 퓨즈 가중치를 설정합니다.
-
 
     """
     이 코드 블록은 주어진 특성 맵과 배경 이미지의 패치를 비교하여 어텐션 매커니즘을 수행하는 부분입니다. 어텐션 매커니즘은 특정 위치에 주목하도록 네트워크를 가르치는 기술입니다.
@@ -481,45 +548,44 @@ def brush_stroke_mask(FLAGS, name='mask'):
         # 고정된 위치에 브러시 스트로크를 그림
         fixed_x = W // 2
         fixed_y = H // 2
-        vetex= [[fixed_x, fixed_y]]
+        vetex = [[fixed_x, fixed_y]]
 
-        # 랜덤한 횟수만큼 반복하여 브러시 스트로크를 그립니다.
-        for _ in range(np.random.randint(1, 4)):
-            num_vertex = np.random.randint(min_num_vertex, max_num_vertex)  # 랜덤한 점의 수
-            angle_min = mean_angle - np.random.uniform(0, angle_range)  # 최소 각도
-            angle_max = mean_angle + np.random.uniform(0, angle_range)  # 최대 각도
-            angles = []  # 각도 리스트
-            vertex = []  # 점 리스트
+        # 고정된 값을 사용하여 마스크를 생성합니다.
+        num_vertex = 8  # 고정된 값으로 점의 수 설정
+        mean_angle = 2 * math.pi / 5  # 고정된 값으로 평균 각도 설정
+        angle_range = 2 * math.pi / 15  # 고정된 값으로 각도 범위 설정
+        min_width = 5  # 고정된 값으로 최소 선의 너비 설정
+        max_width = 18  # 고정된 값으로 최대 선의 너비 설정
 
-            # 랜덤한 각도를 생성합니다.
-            for i in range(num_vertex):
-                if i % 2 == 0:
-                    angles.append(2 * math.pi - np.random.uniform(angle_min, angle_max))
-                else:
-                    angles.append(np.random.uniform(angle_min, angle_max))
+        # 랜덤한 각도 대신 고정된 값을 사용합니다.
+        angles = [mean_angle - angle_range, mean_angle + angle_range,
+                  mean_angle - angle_range, mean_angle + angle_range,
+                  mean_angle - angle_range, mean_angle + angle_range,
+                  mean_angle - angle_range, mean_angle + angle_range]
 
-            h, w = mask.size  # 마스크 이미지의 크기
-            # 랜덤한 점을 생성합니다.
-            vertex.append((int(np.random.randint(0, w)), int(np.random.randint(0, h))))
-            # 생성한 점 주위에 브러시 스트로크를 그립니다.
-            for i in range(num_vertex):
-                r = np.clip(
-                    np.random.normal(loc=average_radius, scale=average_radius // 2),
-                    0, 2 * average_radius)
-                new_x = np.clip(vertex[-1][0] + r * math.cos(angles[i]), 0, w)
-                new_y = np.clip(vertex[-1][1] + r * math.sin(angles[i]), 0, h)
-                vertex.append((int(new_x), int(new_y)))
+        h, w = mask.size  # 마스크 이미지의 크기
+        # 랜덤한 점을 생성하지 않고, 고정된 위치를 사용합니다.
+        vertex = [(fixed_x, fixed_y)]
 
-            # 마스크에 선을 그리고, 그 주위에 원을 그립니다.
-            draw = ImageDraw.Draw(mask)
-            width = int(np.random.uniform(min_width, max_width))  # 선의 두께
-            draw.line(vertex, fill=1, width=width)
-            for v in vertex:
-                draw.ellipse((v[0] - width // 2,
-                              v[1] - width // 2,
-                              v[0] + width // 2,
-                              v[1] + width // 2),
-                             fill=1)
+        # 생성한 점 주위에 브러시 스트로크를 그립니다.
+        for i in range(num_vertex):
+            r = np.clip(
+                np.random.normal(loc=average_radius, scale=average_radius // 2),
+                0, 2 * average_radius)
+            new_x = np.clip(vertex[-1][0] + r * math.cos(angles[i]), 0, w)
+            new_y = np.clip(vertex[-1][1] + r * math.sin(angles[i]), 0, h)
+            vertex.append((int(new_x), int(new_y)))
+
+        # 마스크에 선을 그리고, 그 주위에 원을 그립니다.
+        draw = ImageDraw.Draw(mask)
+        width = int(np.random.uniform(min_width, max_width))  # 선의 두께
+        draw.line(vertex, fill=1, width=width)
+        for v in vertex:
+            draw.ellipse((v[0] - width // 2,
+                          v[1] - width // 2,
+                          v[0] + width // 2,
+                          v[1] + width // 2),
+                         fill=1)
 
         # 랜덤하게 이미지를 좌우로 뒤집습니다.
         if np.random.normal() > 0:
