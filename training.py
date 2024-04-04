@@ -9,11 +9,11 @@ import datetime
 import time
 
 from net import *
-from utils import *
+from DeepFill_utils import *
 from config import *
 
 
-tf.random.set_seed(100)
+tf.random.set_seed(20)
 tf.config.run_functions_eagerly(True)
 
 FLAGS = Config('./inpaint.yml')
@@ -65,46 +65,11 @@ test_dataset = test_dataset.map(load_image_train)
 test_dataset = test_dataset.batch(BATCH_SIZE)
 test_dataset = test_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-import numpy
-from numpy import cov
-from numpy import trace
-from numpy import iscomplexobj
-from numpy.random import random
-from scipy.linalg import sqrtm
 
-def fid_score(input, stage1, stage2):
-
-    mu1, sigma1= input.mean(axis=0), cov(input, rowvar =False)
-    mu2 ,sigma2 = stage1.mean(axis=0), cov(stage1, rowvar=False)
-
-    ssdiff =numpy.sum((mu1-mu2)**2.0)
-
-    covmean =sqrtm(sigma1.dot(sigma2))
-    if iscomplexobj(covmean):
-        covmean =covmean.real
-
-    fid1 =ssdiff +trace(sigma1 +sigma2 -2.0 *covmean)
-
-    mu1, sigma1 = input.mean(axis=0), cov(input, rowvar=False)
-    mu2, sigma2 = stage2.mean(axis=0), cov(stage1, rowvar=False)
-
-    ssdiff = numpy.sum((mu1 - mu2) ** 2.0)
-
-    covmean = sqrtm(sigma1.dot(sigma2))
-    if iscomplexobj(covmean):
-        covmean = covmean.real
-
-    fid2 = ssdiff + trace(sigma1 + sigma2 - 2.0 * covmean)
-    fid_score1 = (fid1+fid2) / 2
-
-    return fid_score1
-
-
-
-
-def generator_loss(input, stage1, stage2, neg):
+def generator_loss(input, stage1, stage2, stage3, neg):
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
+    gen_l1_loss += tf.reduce_mean(tf.abs(input - stage3))
     gen_hinge_loss = -tf.reduce_mean(neg)
     total_gen_loss = gen_hinge_loss + gen_l1_loss
     return total_gen_loss, gen_hinge_loss, gen_l1_loss
@@ -137,9 +102,9 @@ def train_step(input, mask):
 
     batch_incomplete = input*(1.-mask)
 
-    stage1, stage2, _ = generator(batch_incomplete, mask, training=True)
+    stage1, stage2, stage3, _, _ = generator(batch_incomplete, mask, training=True)
 
-    batch_complete = stage2*mask + batch_incomplete*(1.-mask)
+    batch_complete = stage3*mask + batch_incomplete*(1.-mask)
     batch_pos_neg = tf.concat([input, batch_complete], axis=0)
     if FLAGS.gan_with_mask:
         batch_pos_neg = tf.concat([batch_pos_neg, tf.tile(mask, [FLAGS.batch_size*2, 1, 1, 1])], axis=3)
@@ -147,7 +112,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, stage3, neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
