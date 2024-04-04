@@ -11,7 +11,7 @@ img_shape = FLAGS.img_shapes
 IMG_HEIGHT = img_shape[0]
 IMG_WIDTH = img_shape[1]
 
-# psnr코드 1
+# psnr코드
 import numpy
 
 
@@ -29,6 +29,7 @@ def psnr(img1, img2):
 from skimage.metrics import structural_similarity as ssim
 import imutils
 import cv2
+
 
 def load(img):
   img = tf.io.read_file(img)
@@ -80,43 +81,53 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
   batch_complete = batch_predict*mask + batch_incomplete*(1-mask)
 
   # input_mask vs stage2_mask
-    '''
-    input_mask= input[0] * mask[0]
-    stage2_mask = batch_predict[0] * mask[0]
-    '''
-    input_mask = input[0] * mask
-    stage2_mask = batch_predict[0] * mask
+  '''
+  input_mask= input[0] * mask[0]
+  stage2_mask = batch_predict[0] * mask[0]
+  '''
+  input_mask = input[0] * mask
+  stage2_mask = batch_predict[0] * mask
 
-    # psnr코드2
-    # input vs stage2
-    cal_psnr = psnr(input[0], batch_predict[0])
-    cal_psnr1 = psnr(input[0], batch_complete[0])
-    cal_psnr2 = psnr(input_mask, stage2_mask)
-    print('PSNR: input vs stage2 = %.4f' % cal_psnr)
-    print('PSNR: input vs inpainted= %.4f' % cal_psnr1)
-    print('PSNR: input_mask vs stage2_mask = %.4f' % cal_psnr2)
+  # psnr코드2
+  # input vs stage2
+  cal_psnr = psnr(input[0], batch_predict[0])
+  # input vs inpainted image
+  cal_psnr1 = psnr(input[0], batch_complete[0])
+  # input mask vs stage2 mask
 
-    # ssim 코드2
-    imageA = input[0]
-    imageB = batch_complete[0]
-    imageC = batch_predict[0]
-    imageA = ((imageA.numpy() + 1.) * 127.5).astype("uint8")
-    imageB = ((imageB.numpy() + 1.) * 127.5).astype("uint8")
-    imageC = ((imageC.numpy() + 1.) * 127.5).astype("uint8")
-    grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
-    grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
-    grayC = cv2.cvtColor(imageC, cv2.COLOR_BGR2GRAY)
+  cal_psnr2 = psnr(input[0] * mask, batch_predict[0] * mask)
+  cal_psnr3 = psnr(input[0] * mask, batch_complete[0] * mask)
+  cal_psnr4 = psnr(input[0] * mask, batch_predict * mask)
+  cal_psnr5 = psnr(input[0] * mask, batch_complete[0] * (1 - mask) + batch_predict[0] * mask)
 
-    (score, diff) = ssim(grayA, grayB, full=True)
+  print('PSNR: input vs stage2 = %.4f' % cal_psnr)
+  print('PSNR: input vs inpainted= %.4f' % cal_psnr1)
+  print('PSNR: input_mask vs stage3_mask(FAIL) = %.4f' % cal_psnr2)
+  print('PSNR: input_mask vs inpainted_mask = %.4f' % cal_psnr3)
+  '''true'''
+  print('PSNR: input_mask vs stage3_mask(TRUE) =%.4f' % cal_psnr4)
+  '''true'''
+  print('PSNR: input_mask vs stage3_mask(TEST)=%.4f' % cal_psnr5)
+  # ssim 코드2
+  imageA = input[0]
+  imageB = batch_complete[0]
+  imageC = batch_predict[0]
 
-    print("SSIM: input vs inpainted = {}".format(score))
+  imageA = ((imageA.numpy() + 1.) * 127.5).astype("uint8")
+  imageB = ((imageB.numpy() + 1.) * 127.5).astype("uint8")
+  imageC = ((imageC.numpy() + 1.) * 127.5).astype("uint8")
+  grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+  grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+  grayC = cv2.cvtColor(imageC, cv2.COLOR_BGR2GRAY)
 
-    (score1, diff1) = ssim(grayA, grayC, full=True)
-    print("SSIM: input vs stage2 = {}".format(score1))
+  (score, diff) = ssim(grayA, grayB, full=True)
 
+  print("SSIM: input vs inpainted = {}".format(score))
 
+  (score1, diff1) = ssim(grayA, grayC, full=True)
+  print("SSIM: input vs stage2 = {}".format(score1))
 
-#교정: 아래 1/2/4/5라인
+  #교정: 아래 1/2/4/5라인
   display_list = [input[0], batch_incomplete[0], stage1[0], stage2[0], stage3[0], batch_complete[0], offset_flow1[0], offset_flow2[0]]
   title = ['Input Image', 'Input With Mask', 'stage1', 'stage2', 'stage3', 'Inpainted Image', 'Offset Flow1', 'Offset Flow2']
   if not url:
