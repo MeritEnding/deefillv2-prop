@@ -1,0 +1,3 @@
+g_total,g_hinge,g_l1,d
+"tf.Tensor(0.65134466, shape=(), dtype=float32)","tf.Tensor(-0.0013315193, shape=(), dtype=float32)","tf.Tensor(0.65267706, shape=(), dtype=float32)","tf.Tensor(0.999968, shape=(), dtype=float32)"
+"tf.Tensor(0.40439647, shape=(), dtype=float32)","tf.Tensor(-0.0013571683, shape=(), dtype=float32)","tf.Tensor(0.40575358, shape=(), dtype=float32)","tf.Tensor(0.99998343, shape=(), dtype=float32)"
