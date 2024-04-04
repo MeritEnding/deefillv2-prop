@@ -9,11 +9,11 @@ import datetime
 import time
 
 from net import *
-from DeepFill_utils import *
+from utils import *
 from config import *
 
 
-tf.random.set_seed(20)
+tf.random.set_seed(100)
 tf.config.run_functions_eagerly(True)
 
 FLAGS = Config('./inpaint.yml')
@@ -66,6 +66,11 @@ test_dataset = test_dataset.batch(BATCH_SIZE)
 test_dataset = test_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 
+
+
+
+
+
 def generator_loss(input, stage1, stage2, stage3, neg):
     gen_l1_loss = tf.reduce_mean(tf.abs(input - stage1))
     gen_l1_loss +=  tf.reduce_mean(tf.abs(input - stage2))
@@ -104,6 +109,7 @@ def train_step(input, mask):
 
     stage1, stage2, stage3, _, _ = generator(batch_incomplete, mask, training=True)
 
+
     batch_complete = stage3*mask + batch_incomplete*(1.-mask)
     batch_pos_neg = tf.concat([input, batch_complete], axis=0)
     if FLAGS.gan_with_mask:
@@ -112,7 +118,7 @@ def train_step(input, mask):
     pos_neg = discriminator(batch_pos_neg, training=True)
     pos, neg = tf.split(pos_neg, 2)
 
-    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, stage3, neg)
+    total_gen_loss, gen_hinge_loss, gen_l1_loss = generator_loss(input, stage1, stage2, stage3,neg)
     dis_loss = dicriminator_loss(pos, neg)
 
   generator_gradients = gen_tape.gradient(total_gen_loss,
