@@ -422,14 +422,16 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
         # Circle parameters
         num = 10
         cx, cy = W // 2, H // 2
-        if num > 0:
-            if T % 5 == 0:
-                num -= 1
+        if T < 5:
+            radius = min(W, H) // 10
+        elif T<10:
+            radius = min(W, H) // 8
+        elif T<15:
+            radius = min(W, H) // 6
         else:
-            num = 8
-
+            radius =min(W, H) // 4
         # Adjust radius based on test number
-        radius = min(W, H) // num * (T + 1)
+
 
         # Draw circle
         for y in range(H):
