@@ -420,21 +420,23 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
         mask = np.zeros((1, H, W, 1), dtype=np.float32)  # Create empty mask
 
         # Circle parameters
-
-        if(T<25):
-            cx, cy = T +10, 10
-        elif (25<=T < 50):
-            cx,cy = 0, 20
-            cx=T+10
-        elif (50 <= T < 75):
-            cx, cy = 0, 30
-            cx = T + 10
-        elif (75<=T < 90):
-            cx,cy = 0, 40
-            cx= T + 10
+        
+        if(T<35):
+            cx, cy = T+10, 10
+        elif (35<=T < 70):
+            cx = T - 35
+            cy = 20
+            
+        elif (70 <= T < 105):
+            cx = T - 70
+            cy = 30
+            
+        elif (105<=T < 140):
+            cx = T - 105
+            cy = 40
         else:
-            cx, cy = 0, 50
-            cx = T + 10
+            cx = T - 140
+            cy = 50
 
 
 
