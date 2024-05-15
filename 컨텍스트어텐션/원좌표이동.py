@@ -424,18 +424,18 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
         if(T<35):
             cx, cy = T+10, 10
         elif (35<=T < 70):
-            cx = T - 35
+            cx = T+10 - 35
             cy = 20
             
         elif (70 <= T < 105):
-            cx = T - 70
+            cx = T+10- 70
             cy = 30
             
         elif (105<=T < 140):
-            cx = T - 105
+            cx = T+10 - 105
             cy = 40
         else:
-            cx = T - 140
+            cx = T+10 - 140
             cy = 50
 
 
