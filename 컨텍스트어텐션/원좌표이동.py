@@ -421,17 +421,17 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
 
         # Circle parameters
         
-        if(T<35):
+        if(T<40):
             cx, cy = T+10, 10
-        elif (35<=T < 70):
+        elif (40<=T < 80):
             cx = T+10 - 35
             cy = 20
             
-        elif (70 <= T < 105):
+        elif (80 <= T < 120):
             cx = T+10- 70
             cy = 30
             
-        elif (105<=T < 140):
+        elif (120<=T < 160):
             cx = T+10 - 105
             cy = 40
         else:
