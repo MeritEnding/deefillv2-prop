@@ -14,7 +14,9 @@ IMG_WIDTH = img_shape[1]
 
 # psnr코드
 import numpy
+
 test_num = 0
+
 
 def psnr(img1, img2):
     input = tf.clip_by_value((img1.numpy() * 0.5 + 0.5), 0., 1.)
@@ -139,7 +141,7 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
 
     # input_mask vs stage2_mask
 
-    input_mask= input[0] * mask[0]
+    input_mask = input[0] * mask[0]
     stage2_mask = batch_predict[0] * mask[0]
     '''
     input_mask = input[0] * mask
@@ -187,7 +189,6 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
     images1 = scale_images(images1, (299, 299, 3))
     images2 = scale_images(images2, (299, 299, 3))
     images3 = scale_images(images3, (299, 299, 3))
-
 
     # pre-process images
     images1 = preprocess_input(images1)
@@ -402,8 +403,8 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
     max_num_vertex = 12
     mean_angle = 2 * math.pi / 5
     angle_range = 2 * math.pi / 15
-    min_width = 5                     #Original 12
-    max_width = 18                    #Original 40
+    min_width = 5  # Original 12
+    max_width = 18  # Original 40
 
     def generate_mask_circle(H, W, T):
         """
@@ -420,25 +421,26 @@ def brush_stroke_mask(FLAGS, name='mask', _test_num=[0]):
         mask = np.zeros((1, H, W, 1), dtype=np.float32)  # Create empty mask
 
         # Circle parameters
-        
-        if(T<40):
-            cx, cy = T+10, 10
-        elif (40<=T < 80):
-            cx = T+10 - 35
+
+        if (T < 40):
+            cx, cy = T + 10, 10
+        elif (40 <= T < 80):
+            cx = T + 10 - 40
             cy = 20
-            
+
         elif (80 <= T < 120):
-            cx = T+10- 70
+            cx = T + 10 - 80
             cy = 30
-            
-        elif (120<=T < 160):
-            cx = T+10 - 105
+
+        elif (120 <= T < 160):
+            cx = T + 10 - 120
             cy = 40
-        else:
-            cx = T+10 - 140
+        elif(160<=T<200):
+            cx = T + 10 - 160
             cy = 50
-
-
+        else:
+            cx = T + 10 - 200
+            cy = 60
 
         # Adjust radius based on test number
 
