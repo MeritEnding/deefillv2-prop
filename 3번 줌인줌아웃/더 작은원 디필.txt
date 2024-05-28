@@ -1,0 +1,35 @@
+mse:  0.0001637119
+mse:  6.994898e-05
+mse:  6.994898e-05
+mse:  6.994898e-05
+mse:  6.9949e-05
+mse:  0.08175281
+PSNR: input vs stage3 = 37.8592
+PSNR: input vs inpainted= 41.5522
+PSNR: input_mask vs stage3_mask(FAIL) = 41.5522
+PSNR: input_mask vs inpainted_mask = 41.5522
+PSNR: input_mask vs stage3_mask(TRUE) =41.5522
+PSNR: input_mask vs stage3_mask(TEST)=10.8750
+SSIM: input vs inpainted = 0.9952067403381449
+SSIM: input vs stage3 = 0.9705620131138334
+1/1 [==============================] - 1s 1s/step
+1/1 [==============================] - 0s 90ms/step
+1/1 [==============================] - 0s 81ms/step
+1/1 [==============================] - 0s 94ms/step
+FID (input vs inpainted): 0.032
+FID (input vs stage3): 0.176
+Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
+mse:  0.00016364879
+mse:  7.000527e-05
+mse:  7.000527e-05
+mse:  7.000527e-05
+mse:  7.000527e-05
+mse:  0.08175287
+PSNR: input vs stage3 = 37.8609
+PSNR: input vs inpainted= 41.5487
+PSNR: input_mask vs stage3_mask(FAIL) = 41.5487
+PSNR: input_mask vs inpainted_mask = 41.5487
+PSNR: input_mask vs stage3_mask(TRUE) =41.5487
+PSNR: input_mask vs stage3_mask(TEST)=10.8750
+SSIM: input vs inpainted = 0.9952228783648184
+SSIM: input vs stage3 = 0.9674341298552049

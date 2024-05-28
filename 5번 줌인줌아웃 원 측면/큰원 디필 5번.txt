@@ -1,0 +1,20 @@
+mse:  0.0018470035
+mse:  0.0017960934
+mse:  0.0017960934
+mse:  0.0017960934
+mse:  0.0017960933
+mse:  0.1086315
+PSNR: input vs stage3 = 27.3353
+PSNR: input vs inpainted= 27.4567
+PSNR: input_mask vs stage3_mask(FAIL) = 27.4567
+PSNR: input_mask vs inpainted_mask = 27.4567
+PSNR: input_mask vs stage3_mask(TRUE) =27.4567
+PSNR: input_mask vs stage3_mask(TEST)=9.6404
+SSIM: input vs inpainted = 0.9646335612388961
+SSIM: input vs stage3 = 0.9596642243877984
+1/1 [==============================] - 1s 1s/step
+1/1 [==============================] - 0s 51ms/step
+1/1 [==============================] - 0s 84ms/step
+1/1 [==============================] - 0s 92ms/step
+FID (input vs inpainted): 7.212
+FID (input vs stage3): 7.111
