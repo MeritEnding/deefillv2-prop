@@ -16,15 +16,20 @@ IMG_WIDTH = img_shape[1]
 import numpy
 
 
-def psnr(img1, img2):
+def psnr(img1, img2, mask=None):
     input = tf.clip_by_value((img1.numpy() * 0.5 + 0.5), 0., 1.)
     out = tf.clip_by_value((img2.numpy() * 0.5 + 0.5), 0., 1.)
-    mse = numpy.mean((input - out) ** 2)
+    
+    if mask is not None:
+        mask = mask.numpy()
+        mse = np.sum(((input - out) ** 2) * mask) / np.sum(mask)
+    else:
+        mse = np.mean((input - out) ** 2)
+    
     print("mse: ", mse)
     if mse == 0:
         return 100
     return 10 * math.log10(1. / mse)
-
 
 # ssim 코드1
 from skimage.metrics import structural_similarity as ssim
@@ -148,10 +153,11 @@ def generate_images(input, generator, training=True, url=False, num_epoch=0):
     # psnr코드2
     # input vs stage2
     cal_psnr = psnr(input[0], batch_predict[0])
-    # input vs inpainted image
     cal_psnr1 = psnr(input[0], batch_complete[0])
-    # input mask vs stage2 mask
-    cal_psnr2 = psnr(input_mask, stage2_mask)
+    cal_psnr2 = psnr(input[0], batch_predict[0], mask)
+    cal_psnr3 = psnr(input[0], batch_complete[0], mask)
+    cal_psnr4 = psnr(input[0], batch_predict[0], mask)
+    cal_psnr5 = psnr(input[0], batch_complete[0] * (1 - mask) + batch_predict[0] * mask, mask)
     print('PSNR: input vs stage2 = %.4f' % cal_psnr)
     print('PSNR: input vs inpainted= %.4f' % cal_psnr1)
     print('PSNR: input_mask vs stage2_mask = %.4f' % cal_psnr2)
