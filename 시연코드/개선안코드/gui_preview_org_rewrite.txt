@@ -1,0 +1,162 @@
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import filedialog
+import subprocess
+import os
+import cv2
+import numpy as np
+from PIL import Image, ImageTk
+
+
+class InpaintingApp:
+    def __init__(self, root):
+        # 창 기본 설정
+        self.root = root
+        self.root.title("Inpainting Control Application")
+        self.root.geometry("600x600")
+        self.root.configure(bg='#2b2b2b')
+
+        # Prop Inpainting 완료 상태 변수
+        self.prop_inpainting_done = False
+
+        # 버튼과 캔버스 레이아웃 설정
+        self.setup_ui()
+
+        # 초기 이미지를 캔버스에 표시
+        self.initial_image_path = '../FINAL_TEST/Image_Path/image1.png'
+        self.show_image_on_canvas(self.initial_image_path)
+
+    def setup_ui(self):
+        # 상단 텍스트
+        self.header_label = tk.Label(
+            self.root,
+            text="Inpainting Experiment Controller",
+            font=("Helvetica", 16, "bold"),
+            fg="#ffffff",
+            bg="#2b2b2b",
+        )
+        self.header_label.pack(pady=10)
+
+        # 버튼 프레임
+        self.button_frame = tk.Frame(self.root, bg="#2b2b2b")
+        self.button_frame.pack(pady=20)
+
+        # 버튼 정의
+        button_style = {
+            "width": 25,
+            "height": 2,
+            "bg": "#4caf50",
+            "fg": "#ffffff",
+            "font": ("Helvetica", 12),
+            "relief": "raised",
+            "activebackground": "#81c784",
+            "activeforeground": "#ffffff",
+        }
+
+        # Prop Inpainting 버튼 (활성화 상태)
+        self.prop_button = tk.Button(
+            self.button_frame,
+            text="Run Prop Inpainting",
+            command=self.run_prop_inpainting,
+            **button_style,
+        )
+        self.prop_button.grid(row=0, column=0, padx=10, pady=10)
+
+        # Org Inpainting 버튼 (초기 비활성화)
+        self.org_button = tk.Button(
+            self.button_frame,
+            text="Run Org Inpainting",
+            command=self.run_org_inpainting,
+            state="disabled",  # 비활성화 상태로 시작
+            **button_style,
+        )
+        self.org_button.grid(row=0, column=1, padx=10, pady=10)
+
+        # 결과 확인 버튼
+        self.display_button = tk.Button(
+            self.button_frame,
+            text="Display Results",
+            command=self.display_results,
+            **button_style,
+        )
+        self.display_button.grid(row=1, column=0, padx=10, pady=10)
+
+        # 종료 버튼
+        self.quit_button = tk.Button(
+            self.button_frame,
+            text="Quit",
+            command=self.root.quit,
+            **button_style,
+        )
+        self.quit_button.grid(row=1, column=1, padx=10, pady=10)
+
+        # 이미지 캔버스
+        self.canvas = tk.Canvas(
+            self.root, width=400, height=300, bg="#3e3e3e", highlightthickness=0
+        )
+        self.canvas.pack(pady=20)
+
+    def run_prop_inpainting(self):
+        print("Running prop_inpainting.py...")
+        subprocess.run(["python", "prop_inpainting.py"], cwd=os.getcwd())
+        messagebox.showinfo("Info", "Prop inpainting process completed.")
+
+        # Prop Inpainting 완료 상태 설정
+        self.prop_inpainting_done = True
+
+        # Org Inpainting 버튼 활성화
+        self.org_button.config(state="normal")
+
+    def run_org_inpainting(self):
+        if not self.prop_inpainting_done:
+            messagebox.showwarning(
+                "Warning", "Prop Inpainting must be completed first!"
+            )
+            return
+
+        print("Running org_inpainting.py...")
+        subprocess.run(["python", "org_inpainting.py"], cwd=os.path.join("..", "DeepFillv2-TF2-org"))
+        messagebox.showinfo("Info", "Org inpainting process completed.")
+
+    def display_results(self):
+        result_dir = "../FINAL_TEST/Result_Path"
+        org_result_path = os.path.join(result_dir, "Org_Result.png")
+        prop_result_path = os.path.join(result_dir, "Prop_Result.png")
+
+        org_image = cv2.imread(org_result_path)
+        prop_image = cv2.imread(prop_result_path)
+
+        if org_image is None:
+            print("Org result not found.")
+            messagebox.showwarning("Warning", "Original result image not found.")
+        elif prop_image is None:
+            print("Prop result not found.")
+            messagebox.showwarning("Warning", "Proposed result image not found.")
+        else:
+            cv2.imshow("Org_Result", org_image)
+            cv2.imshow("Prop_Result", prop_image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+            messagebox.showinfo("Info", "Results displayed successfully.")
+
+    def show_image_on_canvas(self, image_path_or_array):
+        # 이미지를 캔버스에 표시
+        if isinstance(image_path_or_array, str):
+            image = cv2.imread(image_path_or_array)
+        else:
+            image = image_path_or_array
+
+        width, height = 400, 300
+        image = cv2.resize(image, (width, height))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(image)
+        photo = ImageTk.PhotoImage(pil_image)
+
+        self.canvas.delete("all")
+        self.canvas.create_image(width // 2, height // 2, image=photo)
+        self.canvas.image = photo  # 가비지 컬렉션 방지
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = InpaintingApp(root)
+    root.mainloop()

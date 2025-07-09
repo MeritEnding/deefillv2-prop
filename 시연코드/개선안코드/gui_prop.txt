@@ -1,0 +1,149 @@
+import sys
+import cv2
+import numpy as np
+import os
+import glob
+import tensorflow as tf
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QTimer
+
+# 기존 코드 변수 및 설정
+drawing = False
+last_point = (-1, -1)
+counter = 1
+save_folder = '../FINAL_TEST'
+os.makedirs(save_folder, exist_ok=True)
+
+# 마우스 콜백 함수 (필요 시 추가 기능 유지)
+def save_point(point):
+    with open("../FINAL_TEST/mask_position.txt", "a") as file:
+        file.write(f"{point[0]},{point[1]}\n")
+
+def perform_inpainting():
+    print("Performing inpainting...")
+    # 기존 인페인팅 코드 통합
+    pattern = './images_examples/Test_Result/infer_test_example*.png'
+    file_list = glob.glob(pattern)
+    if not file_list:
+        print("No files matching the pattern found.")
+    else:
+        image_path = file_list[0]
+        if os.path.exists(image_path):
+            os.remove(image_path)
+            print("Previous test file deleted.")
+        else:
+            print("File not found.")
+    
+    generator_optimizer = tf.keras.optimizers.Adam(1e-4, beta_1=0.5, beta_2=0.9)
+    discriminator_optimizer = tf.keras.optimizers.SGD(learning_rate=1e-4)
+    FLAGS = Config('./inpaint.yml')
+
+    generator = GeneratorMultiColumn()
+    discriminator = Discriminator()
+    test_dataset = tf.data.Dataset.list_files("../FINAL_TEST/*.png")
+    test_dataset = test_dataset.map(load_image_train)
+    test_dataset = test_dataset.batch(FLAGS.batch_size)
+    test_dataset = test_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+
+    checkpoint_dir = "./training_checkpoints"
+    checkpoint = tf.train.Checkpoint(
+        step=tf.Variable(0),
+        generator_optimizer=generator_optimizer,
+        discriminator_optimizer=discriminator_optimizer,
+        generator=generator,
+        discriminator=discriminator
+    )
+    checkpoint.restore(checkpoint_dir + '/' + 'ckpt-20')
+    step = np.int(checkpoint.step)
+    print("Continue Training from epoch ", step)
+
+    for data in test_dataset.take(50):
+        generate_images(data, generator, training=False, num_epoch=step)
+
+def display_output():
+    print("Displaying output...")
+    pattern = './images_examples/Test_Result/infer_test_example*.png'
+    file_list = glob.glob(pattern)
+    if not file_list:
+        print("No files matching the pattern found.")
+    else:
+        image_path = file_list[0]
+        final_image = cv2.imread(image_path)
+        if final_image is not None:
+            resized_image = cv2.resize(final_image, (3000, 3000), interpolation=cv2.INTER_AREA)
+            cv2.imshow("Prop Result", resized_image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        else:
+            print("Unable to load image.")
+
+# PyQt5 GUI 클래스
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Inpainting GUI")
+        self.setGeometry(100, 100, 800, 600)
+        
+        # UI 요소
+        self.image_label = QLabel(self)
+        self.image_label.setScaledContents(True)
+
+        self.capture_button = QPushButton("Capture & Save (s)", self)
+        self.capture_button.clicked.connect(self.capture_image)
+
+        self.inpaint_button = QPushButton("Inpaint (i)", self)
+        self.inpaint_button.clicked.connect(perform_inpainting)
+
+        self.output_button = QPushButton("Show Output (o)", self)
+        self.output_button.clicked.connect(display_output)
+
+        self.quit_button = QPushButton("Quit (q)", self)
+        self.quit_button.clicked.connect(self.close)
+
+        # 레이아웃 설정
+        layout = QVBoxLayout()
+        layout.addWidget(self.image_label)
+        layout.addWidget(self.capture_button)
+        layout.addWidget(self.inpaint_button)
+        layout.addWidget(self.output_button)
+        layout.addWidget(self.quit_button)
+
+        central_widget = QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+        # 카메라 초기화
+        self.cap = cv2.VideoCapture(0)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
+        self.timer.start(30)
+
+    def update_frame(self):
+        ret, frame = self.cap.read()
+        if ret:
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            height, width, channel = image.shape
+            step = channel * width
+            qImg = QImage(image.data, width, height, step, QImage.Format_RGB888)
+            self.image_label.setPixmap(QPixmap.fromImage(qImg))
+
+    def capture_image(self):
+        global counter
+        ret, frame = self.cap.read()
+        if ret:
+            filename = os.path.join(save_folder, f"sketch{counter}.png")
+            cv2.imwrite(filename, frame)
+            print(f"Image saved as {filename}.")
+            counter += 1
+
+    def closeEvent(self, event):
+        self.cap.release()
+        cv2.destroyAllWindows()
+        event.accept()
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec_())
