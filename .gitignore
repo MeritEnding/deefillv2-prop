@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+
+# Java / Maven
+target/
+*.class
+
+# 모델 체크포인트 / 대용량 산출물
+training_checkpoints/
+*.ckpt
+*.h5
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 환경 변수
+.env
