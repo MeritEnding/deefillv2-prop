@@ -1,0 +1,131 @@
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+header h1 {
+  margin: 0 0 0.4rem;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  margin: 0 0 1.5rem;
+  color: #667;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.engine-badge {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #e3f2e6;
+  color: #1d7a33;
+}
+
+.engine-badge.down {
+  background: #fdeaea;
+  color: #b3261e;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+
+.file-label {
+  border: 1px solid #ccd;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  background: #fff;
+}
+
+.file-label input {
+  display: none;
+}
+
+.brush-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #445;
+}
+
+button {
+  border: 1px solid #ccd;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.primary {
+  background: #2456e6;
+  border-color: #2456e6;
+  color: #fff;
+}
+
+.error {
+  color: #b3261e;
+  margin: 0 0 1rem;
+}
+
+.workspace {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.workspace figure {
+  margin: 0;
+}
+
+.workspace figcaption {
+  font-size: 0.85rem;
+  color: #667;
+  margin-bottom: 0.4rem;
+}
+
+.canvas {
+  border: 1px dashed #bbc;
+  border-radius: 8px;
+  background: #fafafa;
+  min-width: 320px;
+  min-height: 200px;
+}
+
+.canvas.ready {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.workspace img {
+  max-width: 420px;
+  border-radius: 8px;
+  border: 1px solid #dde;
+}
+
+.placeholder {
+  color: #99a;
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .subtitle, .brush-label, .workspace figcaption { color: #aab; }
+  .file-label, button { background: #23252b; border-color: #444a55; color: #dde; }
+  .canvas { background: #1b1d22; border-color: #444a55; }
+}
