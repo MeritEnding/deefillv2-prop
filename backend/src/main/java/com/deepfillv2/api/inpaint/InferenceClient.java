@@ -3,6 +3,7 @@ package com.deepfillv2.api.inpaint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -10,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.util.Map;
 
 /**
@@ -21,7 +23,14 @@ public class InferenceClient {
     private final RestClient restClient;
 
     public InferenceClient(@Value("${inference.base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        // uvicorn은 h2c 업그레이드 요청의 본문을 처리하지 못하므로 HTTP/1.1로 고정한다.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+        this.restClient = RestClient.builder()
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                .baseUrl(baseUrl)
+                .build();
     }
 
     public byte[] inpaint(MultipartFile image, MultipartFile mask) throws IOException {
