@@ -16,6 +16,8 @@ target/
 training_checkpoints/
 *.ckpt
 *.h5
+*.pt
+big-lama.pt
 
 # IDE / OS
 .idea/
