@@ -49,6 +49,18 @@ public class InferenceClient {
                 .body(byte[].class);
     }
 
+    public String detect(MultipartFile image) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+
+        return restClient.post()
+                .uri("/detect")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .body(String.class);
+    }
+
     public byte[] segment(MultipartFile image, double x, double y) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
