@@ -3,6 +3,7 @@ import './App.css'
 import NavBar from './components/NavBar.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Landing from './pages/Landing.jsx'
+import Privacy from './pages/Privacy.jsx'
 import Studio from './pages/Studio.jsx'
 import { MODE_MAP } from './lib/modes.js'
 
@@ -36,7 +37,11 @@ export default function App() {
   return (
     <>
       <NavBar route={path} navigate={navigate} />
-      {path === '/studio' ? (
+      {path === '/privacy' ? (
+        <ErrorBoundary onReset={() => navigate('/privacy')}>
+          <Privacy engine={engine} />
+        </ErrorBoundary>
+      ) : path === '/studio' ? (
         <ErrorBoundary onReset={() => navigate('/studio')}>
           <Studio modeId={modeId} setModeId={setModeId} engine={engine} />
         </ErrorBoundary>
