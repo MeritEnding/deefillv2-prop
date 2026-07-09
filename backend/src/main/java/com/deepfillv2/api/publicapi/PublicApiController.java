@@ -1,5 +1,6 @@
 package com.deepfillv2.api.publicapi;
 
+import com.deepfillv2.api.admin.AuditService;
 import com.deepfillv2.api.inpaint.InferenceClient;
 import com.deepfillv2.api.inpaint.InvalidUploadException;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,74 +19,81 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
  * 외부 시스템 연동용 공개 API (v1).
- * X-API-Key 인증 후 비식별화를 원콜로 처리하고, 키별 사용량을 집계한다.
+ * X-API-Key 인증 후 비식별화를 원콜로 처리하고, 감사 로그·키별 사용량을 남긴다.
  */
 @RestController
 @RequestMapping("/api/v1")
 public class PublicApiController {
 
     private final InferenceClient inferenceClient;
+    private final AuditService auditService;
     private final Set<String> apiKeys;
-    private final Map<String, AtomicLong> usage = new ConcurrentHashMap<>();
 
     public PublicApiController(InferenceClient inferenceClient,
+                               AuditService auditService,
                                @Value("${api.keys}") String keys) {
         this.inferenceClient = inferenceClient;
+        this.auditService = auditService;
         this.apiKeys = Arrays.stream(keys.split(","))
                 .map(String::trim)
                 .filter(k -> !k.isEmpty())
                 .collect(Collectors.toSet());
     }
 
-    /** 원콜 비식별화: 업로드 → 얼굴 자동 탐지 → 제거·배경 복원 PNG 반환. */
+    /** 원콜 비식별화: 업로드 → 얼굴·번호판 자동 탐지 → 제거·배경 복원 PNG 반환. */
     @PostMapping("/redact")
     public ResponseEntity<?> redact(@RequestHeader(value = "X-API-Key", required = false) String key,
                                     @RequestPart("image") MultipartFile image) throws IOException {
-        ResponseEntity<Map<String, String>> denied = authorize(key);
-        if (denied != null) {
-            return denied;
+        if (!authorized(key)) {
+            return unauthorized();
         }
         if (image == null || image.isEmpty()) {
             throw new InvalidUploadException("image 파트가 비어 있습니다.");
         }
 
+        long started = System.currentTimeMillis();
         ResponseEntity<byte[]> result = inferenceClient.redact(image);
-        usage.get(key).incrementAndGet();
+        long elapsed = System.currentTimeMillis() - started;
 
         String redactedCount = result.getHeaders().getFirst("X-Redacted-Count");
+        int detected = redactedCount != null ? Integer.parseInt(redactedCount) : 0;
+        String masked = mask(key);
+        auditService.countApiKey(masked);
+        auditService.record(masked, "redact", detected, elapsed, "ok");
+
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
-                .header("X-Redacted-Count", redactedCount != null ? redactedCount : "0")
+                .header("X-Redacted-Count", String.valueOf(detected))
                 .body(result.getBody());
     }
 
     /** 키별 누적 처리 건수 조회. */
     @GetMapping("/usage")
     public ResponseEntity<?> usage(@RequestHeader(value = "X-API-Key", required = false) String key) {
-        ResponseEntity<Map<String, String>> denied = authorize(key);
-        if (denied != null) {
-            return denied;
+        if (!authorized(key)) {
+            return unauthorized();
         }
-        long count = usage.get(key).get();
+        String masked = mask(key);
         return ResponseEntity.ok(Map.of(
-                "key", key.substring(0, Math.min(4, key.length())) + "****",
-                "redactCount", String.valueOf(count)
+                "key", masked,
+                "redactCount", String.valueOf(auditService.apiKeyCount(masked))
         ));
     }
 
-    /** 키가 유효하면 usage 슬롯을 준비하고 null, 아니면 401 응답을 반환한다. */
-    private ResponseEntity<Map<String, String>> authorize(String key) {
-        if (key == null || !apiKeys.contains(key)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("status", "error", "message", "유효한 X-API-Key 헤더가 필요합니다."));
-        }
-        usage.computeIfAbsent(key, k -> new AtomicLong());
-        return null;
+    private boolean authorized(String key) {
+        return key != null && apiKeys.contains(key);
+    }
+
+    private ResponseEntity<Map<String, String>> unauthorized() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("status", "error", "message", "유효한 X-API-Key 헤더가 필요합니다."));
+    }
+
+    private String mask(String key) {
+        return key.substring(0, Math.min(4, key.length())) + "****";
     }
 }

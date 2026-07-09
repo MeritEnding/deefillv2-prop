@@ -5,6 +5,7 @@ import { downloadBlob } from '../lib/image.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const MASK_MARGIN = 0.25 // 탐지 박스 대비 마스크 타원 여유
+const TYPE_LABEL = { face: '얼굴', plate: '번호판' }
 
 // 비식별화 워크플로: 업로드 → 자동 탐지 → 항목 선택 → 제거·자연 복원 → 저장
 export default function Privacy({ engine }) {
@@ -209,7 +210,7 @@ export default function Privacy({ engine }) {
                       <li key={i}>
                         <label>
                           <input type="checkbox" checked={d.on} onChange={() => toggle(i)} />
-                          <span>얼굴 {i + 1}</span>
+                          <span>{TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
                           <em>{Math.round(d.score * 100)}%</em>
                         </label>
                       </li>
