@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -21,11 +22,13 @@ import java.util.Map;
 public class InferenceClient {
 
     private final RestClient restClient;
+    private volatile String engineName = "unknown";
 
     public InferenceClient(@Value("${inference.base-url}") String baseUrl) {
         // uvicorn은 h2c 업그레이드 요청의 본문을 처리하지 못하므로 HTTP/1.1로 고정한다.
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(3))
                 .build();
         this.restClient = RestClient.builder()
                 .requestFactory(new JdkClientHttpRequestFactory(httpClient))
@@ -48,7 +51,16 @@ public class InferenceClient {
 
     @SuppressWarnings("unchecked")
     public Map<String, String> health() {
-        return restClient.get().uri("/health").retrieve().body(Map.class);
+        Map<String, String> body = restClient.get().uri("/health").retrieve().body(Map.class);
+        if (body != null && body.get("engine") != null) {
+            engineName = body.get("engine");
+        }
+        return body;
+    }
+
+    /** 마지막 health 조회에서 확인한 엔진 이름. */
+    public String engineName() {
+        return engineName;
     }
 
     private ByteArrayResource asResource(MultipartFile file, String fallbackName) throws IOException {
