@@ -1,5 +1,6 @@
 package com.deepfillv2.api.inpaint;
 
+import com.deepfillv2.api.admin.AuditService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,9 +25,11 @@ import java.util.Map;
 public class InpaintController {
 
     private final InferenceClient inferenceClient;
+    private final AuditService auditService;
 
-    public InpaintController(InferenceClient inferenceClient) {
+    public InpaintController(InferenceClient inferenceClient, AuditService auditService) {
         this.inferenceClient = inferenceClient;
+        this.auditService = auditService;
     }
 
     @GetMapping("/health")
@@ -48,6 +51,7 @@ public class InpaintController {
         long started = System.currentTimeMillis();
         byte[] result = inferenceClient.inpaint(image, mask);
         long elapsed = System.currentTimeMillis() - started;
+        auditService.record("web", "inpaint", 0, elapsed, "ok");
 
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)

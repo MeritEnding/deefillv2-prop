@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import NavBar from './components/NavBar.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import Admin from './pages/Admin.jsx'
 import Landing from './pages/Landing.jsx'
 import Privacy from './pages/Privacy.jsx'
 import Studio from './pages/Studio.jsx'
@@ -37,7 +38,9 @@ export default function App() {
   return (
     <>
       <NavBar route={path} navigate={navigate} />
-      {path === '/privacy' ? (
+      {path === '/admin' ? (
+        <Admin />
+      ) : path === '/privacy' ? (
         <ErrorBoundary onReset={() => navigate('/privacy')}>
           <Privacy engine={engine} />
         </ErrorBoundary>
