@@ -138,6 +138,18 @@
 .usecase h3 { font-size: 1.02rem; margin: 1rem 0 0.35rem; }
 .usecase p { font-size: 0.9rem; color: var(--text-dim); }
 
+/* 기업 연동 API */
+.api-split { display: grid; grid-template-columns: 1fr 1.1fr; gap: 3rem; align-items: center; }
+.api-points { list-style: none; margin: 1.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.55rem; }
+.api-points li { font-size: 0.92rem; color: var(--text-dim); padding-left: 1.1rem; position: relative; }
+.api-points li::before { content: ''; position: absolute; left: 0; top: 0.52em; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+.api-points code { font-size: 0.84em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 0.05em 0.35em; }
+.api-code {
+  margin: 0; background: #10151d; color: #c9d4e3; border-radius: 10px;
+  padding: 1.4rem 1.5rem; font-size: 0.82rem; line-height: 1.7; overflow-x: auto;
+  font-family: Consolas, 'Courier New', monospace;
+}
+
 /* CTA */
 .cta-band { background: #10151d; color: #f3f5f8; margin-top: 1rem; }
 .cta-band-inner { max-width: var(--maxw); margin: 0 auto; text-align: center; padding: 4rem 1.5rem; }
