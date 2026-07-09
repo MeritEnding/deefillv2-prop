@@ -185,8 +185,14 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     form.append('image', imageBlob, 'image.png')
     form.append('mask', maskBlob, 'mask.png')
     const res = await fetch(`${API_BASE}/api/inpaint`, { method: 'POST', body: form })
-    if (!res.ok) throw new Error(`서버 오류 (${res.status})`)
-    return res.blob()
+    if (!res.ok) {
+      // 백엔드가 내려주는 표준 에러 JSON의 message를 그대로 보여준다
+      const msg = await res.json().then((d) => d.message).catch(() => null)
+      throw new Error(msg ?? `서버 오류 (${res.status})`)
+    }
+    const blob = await res.blob()
+    const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
+    return { blob, elapsed }
   }
 
   const runRemoval = async () => {
@@ -195,7 +201,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     try {
       const maskBlob = await new Promise((r) => maskRef.current.toBlob(r, 'image/png'))
       const out = await postInpaint(imageFile, maskBlob)
-      setResult({ url: URL.createObjectURL(out), blob: out })
+      setResult({ url: URL.createObjectURL(out.blob), blob: out.blob, elapsed: out.elapsed })
     } catch (e) { setError(e.message ?? '요청 실패') } finally { setBusy(false) }
   }
 
@@ -221,7 +227,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
       const imageBlob = await new Promise((r) => ic.toBlob(r, 'image/png'))
       const maskBlob = await new Promise((r) => mc.toBlob(r, 'image/png'))
       const out = await postInpaint(imageBlob, maskBlob)
-      setResult({ url: URL.createObjectURL(out), blob: out, wide: true })
+      setResult({ url: URL.createObjectURL(out.blob), blob: out.blob, elapsed: out.elapsed, wide: true })
     } catch (e) { setError(e.message ?? '요청 실패') } finally { setBusy(false) }
   }
 
@@ -296,14 +302,26 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
                 onPointerUp={onUp}
                 onPointerLeave={() => { onUp(); setCursor(null) }}
               />
-              {!strokes.length && <div className="stage-hint">{mode.hint}</div>}
+              {!strokes.length && !busy && <div className="stage-hint">{mode.hint}</div>}
+              {busy && (
+                <div className="stage-busy">
+                  <div className="scanline" />
+                  <span>AI가 복원하는 중…</span>
+                </div>
+              )}
             </div>
           )}
 
           {imageURL && !result && isOutpaint && (
             <div className="stage">
               <img className="stage-canvas" src={imageURL} alt="원본" style={{ outline: `${Math.round(expand / 3)}px solid var(--blue-tint-2)` }} />
-              <div className="stage-hint">바깥 파란 영역만큼 배경을 확장합니다</div>
+              {!busy && <div className="stage-hint">바깥 파란 영역만큼 배경을 확장합니다</div>}
+              {busy && (
+                <div className="stage-busy">
+                  <div className="scanline" />
+                  <span>배경을 그려내는 중…</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -368,6 +386,11 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
               <div className="tool-group">
                 <span className="tool-label">완성됐어요 🎉</span>
                 <p className="result-desc">HD 원본으로 저장하거나 클립보드에 복사하세요.</p>
+                {result.elapsed && (
+                  <p className="result-meta">
+                    {engine ? `${engine} 엔진 · ` : ''}처리 {(result.elapsed / 1000).toFixed(1)}초
+                  </p>
+                )}
               </div>
               <button className="btn btn-primary btn-block" onClick={download}><Icon.download /> 이미지 저장</button>
               <button className="btn btn-outline btn-block" onClick={copy}><Icon.copy /> {copied ? '복사됨!' : '클립보드 복사'}</button>
