@@ -17,10 +17,17 @@ export default function Privacy({ engine }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [logs, setLogs] = useState([]) // 관제 콘솔 이벤트 로그 (최신이 위)
+  const [metrics, setMetrics] = useState({}) // {detectMs, restoreMs}
 
   const imgElRef = useRef(null)
 
-  const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle') }
+  const pushLog = (msg, level = 'info') => {
+    const t = new Date().toLocaleTimeString('ko-KR', { hour12: false })
+    setLogs((l) => [{ t, msg, level }, ...l].slice(0, 60))
+  }
+
+  const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle'); setMetrics({}) }
 
   const loadFile = async (file) => {
     if (!file || !file.type?.startsWith('image/')) return
@@ -29,13 +36,17 @@ export default function Privacy({ engine }) {
     const url = URL.createObjectURL(file)
     setImageURL(url)
     const img = new Image()
-    img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = () => {
+      setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+      pushLog(`업로드 ${file.name} · ${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    }
     img.src = url
     runDetect(file)
   }
 
   const runDetect = async (file) => {
     setPhase('detecting'); setError(null)
+    const started = performance.now()
     try {
       const form = new FormData()
       form.append('image', file, 'image.png')
@@ -45,9 +56,15 @@ export default function Privacy({ engine }) {
         throw new Error(msg ?? `서버 오류 (${res.status})`)
       }
       const data = await res.json()
+      const ms = performance.now() - started
+      setMetrics((m) => ({ ...m, detectMs: ms }))
+      const faces = data.detections.filter((d) => d.type === 'face').length
+      const plates = data.detections.filter((d) => d.type === 'plate').length
+      pushLog(`탐지 완료 · 얼굴 ${faces} · 번호판 ${plates} · ${(ms / 1000).toFixed(2)}s (YuNet+Cascade)`)
       setDets(data.detections.map((d) => ({ ...d, on: true })))
       setPhase('ready')
     } catch (e) {
+      pushLog(`탐지 실패 · ${e.message}`, 'error')
       setError(e.message ?? '자동 탐지에 실패했어요.')
       setDets([])
       setPhase('ready')
@@ -61,6 +78,7 @@ export default function Privacy({ engine }) {
   const runRemove = async () => {
     if (!imageFile || !natural || !selected.length || phase === 'removing') return
     setPhase('removing'); setError(null)
+    pushLog(`지우기 시작 · ${selected.length}개 영역 (마진 ${Math.round(MASK_MARGIN * 100)}%)`)
     try {
       // 선택된 박스들을 타원 마스크로 렌더링
       const mc = document.createElement('canvas')
@@ -85,9 +103,13 @@ export default function Privacy({ engine }) {
       }
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
+      const engineName = res.headers.get('X-Engine')
+      setMetrics((m) => ({ ...m, restoreMs: elapsed }))
+      pushLog(`복원 완료 · ${selected.length}개 영역 · ${elapsed ? (elapsed / 1000).toFixed(2) + 's' : '-'} · ${engineName ?? 'engine'}`)
       setResult({ url: URL.createObjectURL(blob), blob, elapsed })
       setPhase('done')
     } catch (e) {
+      pushLog(`복원 실패 · ${e.message}`, 'error')
       setError(e.message ?? '제거에 실패했어요.')
       setPhase('ready')
     }
@@ -105,8 +127,8 @@ export default function Privacy({ engine }) {
         <div className="studio-title">
           <div className="tile tile-sm"><Icon.shield /></div>
           <div>
-            <h2>개인정보 비식별화</h2>
-            <p>얼굴을 자동으로 찾아 지우고, 모자이크 대신 배경을 자연스럽게 복원합니다.</p>
+            <h2>개인정보 지우기</h2>
+            <p>얼굴, 차량 번호판 같은 개인정보를 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.</p>
           </div>
         </div>
         <span className={`pill ${engine ? 'pill-ok' : 'pill-down'}`}>
@@ -125,8 +147,8 @@ export default function Privacy({ engine }) {
             <label className="dropzone">
               <input type="file" accept="image/*" hidden onChange={(e) => newImage(e.target.files[0])} />
               <img className="dropzone-mascot" src="/mascot-select.png" alt="" />
-              <p className="dropzone-title">비식별화할 사진을 올려주세요</p>
-              <p className="dropzone-sub">현장 사진 · CCTV 캡처 · 사고 사진 — 업로드 즉시 자동 분석됩니다</p>
+              <p className="dropzone-title">사진을 올리면 바로 찾아드려요</p>
+              <p className="dropzone-sub">현장 사진 · CCTV 캡처 · 사고 사진 — 얼굴과 번호판을 자동으로 찾아 표시합니다</p>
             </label>
           )}
 
@@ -164,7 +186,7 @@ export default function Privacy({ engine }) {
                   <div className="stage-busy">
                     <div className="scanline" />
                     <img src="/mascot-erase.png" alt="" />
-                    <span>제거하고 배경을 복원하는 중…</span>
+                    <span>지우고 배경을 메우는 중…</span>
                   </div>
                 )}
               </div>
@@ -177,7 +199,7 @@ export default function Privacy({ engine }) {
                 before={imageURL}
                 after={result.url}
                 beforeLabel="원본"
-                afterLabel="비식별 완료"
+                afterLabel="완료"
                 initial={15}
                 style={natural ? { aspectRatio: `${natural.w} / ${natural.h}`, maxWidth: `${Math.round(560 * (natural.w / natural.h))}px` } : undefined}
               />
@@ -190,8 +212,8 @@ export default function Privacy({ engine }) {
             <>
               <div className="tool-group">
                 <img className="result-mascot" src="/mascot-perfect.png" alt="" />
-                <span className="tool-label tool-label-done"><Icon.check /> 비식별 완료</span>
-                <p className="result-desc">{selected.length}개 항목이 제거되고 배경이 복원됐습니다.</p>
+                <span className="tool-label tool-label-done"><Icon.check /> 다 지웠어요</span>
+                <p className="result-desc">{selected.length}개 항목을 지우고 그 자리를 배경으로 복원했어요.</p>
                 {result.elapsed && <p className="result-meta">처리 {(result.elapsed / 1000).toFixed(1)}초</p>}
               </div>
               <button className="btn btn-primary btn-block" onClick={download}><Icon.download /> 이미지 저장</button>
@@ -201,9 +223,14 @@ export default function Privacy({ engine }) {
           ) : (
             <>
               <div className="tool-group">
-                <span className="tool-label">감지된 개인정보 {dets ? `· ${dets.length}건` : ''}</span>
-                {!dets && <p className="result-desc">사진을 올리면 자동으로 분석합니다.</p>}
-                {dets && !dets.length && <p className="result-desc">감지된 항목이 없습니다. 수동 편집은 스튜디오를 이용하세요.</p>}
+                <span className="tool-label">찾아낸 개인정보 {dets ? `· ${dets.length}건` : ''}</span>
+                {!dets && <p className="result-desc">사진을 올리면 자동으로 찾아드립니다.</p>}
+                {dets && !dets.length && (
+                  <p className="result-desc">
+                    자동으로 찾은 항목이 없어요. 서류 속 번호나 명찰처럼 자동으로 못 찾는 정보는
+                    <a href="#/studio"> 스튜디오</a>에서 칠해서 지울 수 있어요.
+                  </p>
+                )}
                 {dets && dets.length > 0 && (
                   <ul className="pv-list">
                     {dets.map((d, i) => (
@@ -211,6 +238,9 @@ export default function Privacy({ engine }) {
                         <label>
                           <input type="checkbox" checked={d.on} onChange={() => toggle(i)} />
                           <span>{TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
+                          <span className="pv-score" title={`신뢰도 ${Math.round(d.score * 100)}%`}>
+                            <i style={{ width: `${Math.round(d.score * 100)}%` }} />
+                          </span>
                           <em>{Math.round(d.score * 100)}%</em>
                         </label>
                       </li>
@@ -230,13 +260,34 @@ export default function Privacy({ engine }) {
                 onClick={runRemove}
                 disabled={!selected.length || phase === 'detecting' || phase === 'removing'}
               >
-                {phase === 'removing' ? '복원 중…' : `${selected.length || 0}개 제거·복원`}
+                {phase === 'removing' ? '지우는 중…' : `${selected.length || 0}개 지우기`}
               </button>
               {imageURL && <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => newImage(e.target.files[0])} /></label>}
             </>
           )}
         </aside>
       </div>
+
+      {/* 관제 콘솔 — 처리 지표·이벤트 로그 */}
+      {imageURL && (
+        <div className="pv-telemetry">
+          <div className="pv-chips">
+            <span className="pv-chip"><b>해상도</b>{natural ? `${natural.w}×${natural.h}` : '—'}</span>
+            <span className="pv-chip"><b>엔진</b>{engine ?? '—'}</span>
+            <span className="pv-chip"><b>탐지</b>{dets ? `${dets.length}건` : '—'}</span>
+            <span className="pv-chip"><b>탐지 시간</b>{metrics.detectMs ? `${(metrics.detectMs / 1000).toFixed(2)}s` : '—'}</span>
+            <span className="pv-chip"><b>복원 시간</b>{metrics.restoreMs ? `${(metrics.restoreMs / 1000).toFixed(2)}s` : '—'}</span>
+          </div>
+          <div className="pv-console">
+            {logs.length === 0 && <p className="pv-line pv-dim">이벤트 대기 중…</p>}
+            {logs.map((l, i) => (
+              <p key={i} className={`pv-line ${l.level === 'error' ? 'pv-err' : ''}`}>
+                <span>[{l.t}]</span> {l.msg}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   )
 }

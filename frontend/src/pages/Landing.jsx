@@ -15,14 +15,14 @@ const METRICS = [
 ]
 
 const USE_CASES = [
-  { icon: 'shield', title: 'CCTV·현장 사진', desc: '보고서 첨부 전 얼굴을 자동 비식별' },
+  { icon: 'shield', title: 'CCTV·현장 사진', desc: '보고서 첨부 전 얼굴·번호판 자동 지우기' },
   { icon: 'building', title: '건설·안전 보고', desc: '작업자 얼굴을 지우고 배경 복원' },
   { icon: 'box', title: '보험·사고 접수', desc: '차량·인물 개인정보 정리' },
   { icon: 'bag', title: '커머스·매물 사진', desc: '워터마크·잡동사니는 스튜디오에서' },
 ]
 
 const STEPS = [
-  { img: '/mascot-select.png', n: '01', title: '업로드하면 자동 분석', desc: '얼굴 등 개인정보를 AI가 찾아냅니다.' },
+  { img: '/mascot-select.png', n: '01', title: '업로드하면 자동으로 찾고', desc: '얼굴·번호판 같은 개인정보를 AI가 찾아냅니다.' },
   { img: '/mascot-erase.png', n: '02', title: '제거할 항목만 선택', desc: '박스를 눌러 지울 대상을 고르세요.' },
   { img: '/mascot-excited.png', n: '03', title: '지우고, 자연 복원', desc: '모자이크 대신 배경을 다시 그립니다.' },
 ]
@@ -76,13 +76,13 @@ export default function Landing({ navigate }) {
               가리지 말고,<br />지우세요.
             </h1>
             <p className="hero-sub">
-              모자이크는 티가 납니다. 지움은 사진 속 얼굴 등 개인정보를 자동으로 찾아
-              제거하고, 그 자리를 배경으로 자연스럽게 복원합니다.
-              CCTV 캡처·현장 사진·사고 접수, 그대로 보고서에 쓰세요.
+              모자이크는 티가 납니다. 지움은 얼굴과 차량 번호판을 자동으로 찾아 지우고,
+              그 자리를 원래 배경처럼 다시 그려 넣습니다. 서류의 번호, 명찰, 문신 같은
+              나머지는 칠하기만 하면 같은 방식으로 사라져요.
             </p>
             <div className="hero-cta">
-              <button className="btn btn-white btn-lg" onClick={() => navigate('/privacy')}>비식별화 시작</button>
-              <button className="btn btn-hero-ghost btn-lg" onClick={() => navigate('/studio')}>수동 스튜디오</button>
+              <button className="btn btn-white btn-lg" onClick={() => navigate('/privacy')}>개인정보 지우기</button>
+              <button className="btn btn-hero-ghost btn-lg" onClick={() => navigate('/studio')}>스튜디오 둘러보기</button>
               <span className="hero-free">가입 없음 · 무료</span>
             </div>
           </div>
@@ -97,6 +97,32 @@ export default function Landing({ navigate }) {
             </figure>
           </div>
         </div>
+      </section>
+
+      {/* 무엇을 지우나요 */}
+      <section className="section">
+        <div className="section-head">
+          <h2 className="sec-title">Coverage <i>|</i> <small>무엇을 지우나요</small></h2>
+          <p className="section-sub">사진 속 개인정보라면 무엇이든 — 찾는 방법만 다릅니다.</p>
+        </div>
+        <div className="cover">
+          <div className="cover-card">
+            <div className="tile"><Icon.shield /></div>
+            <span className="cover-k">자동으로 찾아서</span>
+            <h3>얼굴 · 차량 번호판</h3>
+            <p>업로드하는 순간 AI가 찾아 표시합니다. 지울 것만 체크하면 끝.</p>
+          </div>
+          <span className="cover-plus">+</span>
+          <div className="cover-card">
+            <div className="tile"><Icon.brush width="22" height="22" /></div>
+            <span className="cover-k">칠해서 바로</span>
+            <h3>서류 정보 · 명찰 · 그 밖의 전부</h3>
+            <p>자동으로 못 찾는 건 클릭 한 번 또는 붓질 한 번이면 똑같이 지워집니다.</p>
+          </div>
+        </div>
+        <p className="cover-note">
+          무엇을 지우든 결과는 같습니다 — 지운 자리는 모자이크가 아니라 <strong>원래 배경</strong>으로 채워집니다.
+        </p>
       </section>
 
       {/* 복원 갤러리 — 연구 결과 */}
