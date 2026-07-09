@@ -128,6 +128,9 @@
 .samples img:hover { transform: translateY(-2px); border-color: var(--blue-light); }
 
 .stage { position: relative; max-width: 100%; }
+/* 결과 화면: flex 수축으로 .ba(width:100%)가 폭 0으로 붕괴하지 않도록 확정 폭을 준다 */
+.stage-result { width: 100%; display: flex; justify-content: center; }
+.stage-result .ba { margin: 0 auto; }
 .stage-canvas { display: block; max-width: 100%; height: auto; border-radius: 12px; touch-action: none; box-shadow: var(--shadow); }
 .stage-canvas.tool-brush, .stage-canvas.tool-erase { cursor: none; }
 .stage-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.82rem; font-weight: 600; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; backdrop-filter: blur(6px); pointer-events: none; }
