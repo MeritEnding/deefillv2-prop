@@ -3,6 +3,7 @@ package com.deepfillv2.api.inpaint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -10,6 +11,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.Map;
 
 /**
@@ -19,9 +22,18 @@ import java.util.Map;
 public class InferenceClient {
 
     private final RestClient restClient;
+    private volatile String engineName = "unknown";
 
     public InferenceClient(@Value("${inference.base-url}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        // uvicorn은 h2c 업그레이드 요청의 본문을 처리하지 못하므로 HTTP/1.1로 고정한다.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
+        this.restClient = RestClient.builder()
+                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                .baseUrl(baseUrl)
+                .build();
     }
 
     public byte[] inpaint(MultipartFile image, MultipartFile mask) throws IOException {
@@ -37,9 +49,32 @@ public class InferenceClient {
                 .body(byte[].class);
     }
 
+    public byte[] segment(MultipartFile image, double x, double y) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+        parts.add("x", String.valueOf(x));
+        parts.add("y", String.valueOf(y));
+
+        return restClient.post()
+                .uri("/segment")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .body(byte[].class);
+    }
+
     @SuppressWarnings("unchecked")
     public Map<String, String> health() {
-        return restClient.get().uri("/health").retrieve().body(Map.class);
+        Map<String, String> body = restClient.get().uri("/health").retrieve().body(Map.class);
+        if (body != null && body.get("engine") != null) {
+            engineName = body.get("engine");
+        }
+        return body;
+    }
+
+    /** 마지막 health 조회에서 확인한 엔진 이름. */
+    public String engineName() {
+        return engineName;
     }
 
     private ByteArrayResource asResource(MultipartFile file, String fallbackName) throws IOException {

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,7 +15,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * 인페인팅 시연 API.
+ * 인페인팅 API.
  * 프론트에서 원본 이미지와 마스크(흰색=복원 영역)를 받아
  * 추론 서비스에 전달하고 결과 PNG를 반환한다.
  */
@@ -41,10 +42,40 @@ public class InpaintController {
     @PostMapping(value = "/inpaint", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> inpaint(@RequestPart("image") MultipartFile image,
                                           @RequestPart("mask") MultipartFile mask) throws IOException {
-        if (image.isEmpty() || mask.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+        validateImage(image, "원본 이미지");
+        validateImage(mask, "마스크");
+
+        long started = System.currentTimeMillis();
         byte[] result = inferenceClient.inpaint(image, mask);
-        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(result);
+        long elapsed = System.currentTimeMillis() - started;
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("Content-Disposition", "inline; filename=\"jium-result.png\"")
+                .header("X-Engine", inferenceClient.engineName())
+                .header("X-Elapsed-Ms", String.valueOf(elapsed))
+                .body(result);
+    }
+
+    @PostMapping(value = "/segment", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> segment(@RequestPart("image") MultipartFile image,
+                                          @RequestParam("x") double x,
+                                          @RequestParam("y") double y) throws IOException {
+        validateImage(image, "원본 이미지");
+        if (x < 0 || x > 1 || y < 0 || y > 1) {
+            throw new InvalidUploadException("클릭 좌표가 이미지 밖입니다.");
+        }
+        byte[] mask = inferenceClient.segment(image, x, y);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(mask);
+    }
+
+    private void validateImage(MultipartFile file, String label) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidUploadException(label + " 파일이 비어 있습니다.");
+        }
+        String type = file.getContentType();
+        if (type == null || !type.startsWith("image/")) {
+            throw new InvalidUploadException(label + "는 이미지 파일(JPG·PNG)만 업로드할 수 있습니다.");
+        }
     }
 }
