@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import BeforeAfter from '../components/BeforeAfter.jsx'
+import BatchPanel from './BatchPanel.jsx'
 import { Icon } from '../components/icons.jsx'
 import { MODES, MODE_MAP } from '../lib/modes.js'
 import { copyBlobToClipboard, downloadBlob } from '../lib/image.js'
@@ -29,6 +30,7 @@ function stroke(ctx, points, scale, color, size) {
 export default function Studio({ modeId, setModeId, engine, onError }) {
   const mode = MODE_MAP[modeId] ?? MODES[0]
   const isOutpaint = mode.special === 'outpaint'
+  const isBatch = mode.special === 'batch'
 
   const [imageFile, setImageFile] = useState(null)
   const [imageURL, setImageURL] = useState(null)
@@ -322,6 +324,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
         </span>
       </div>
 
+      {isBatch ? <BatchPanel brushDefault={mode.brush} /> : (
       <div className="studio-grid">
         <div
           className={`stage-wrap ${dragOver ? 'drag' : ''}`}
@@ -471,8 +474,9 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
           )}
         </aside>
       </div>
+      )}
 
-      {cursor && !result && !isOutpaint && (
+      {cursor && !result && !isOutpaint && !isBatch && (
         <div className="brush-cursor" style={{ left: cursor.x, top: cursor.y, width: cursor.size, height: cursor.size }} />
       )}
     </main>
