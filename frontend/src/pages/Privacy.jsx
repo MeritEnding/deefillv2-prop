@@ -105,8 +105,8 @@ export default function Privacy({ engine }) {
         <div className="studio-title">
           <div className="tile tile-sm"><Icon.shield /></div>
           <div>
-            <h2>개인정보 비식별화</h2>
-            <p>얼굴을 자동으로 찾아 지우고, 모자이크 대신 배경을 자연스럽게 복원합니다.</p>
+            <h2>개인정보 지우기</h2>
+            <p>얼굴, 차량 번호판 같은 개인정보를 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.</p>
           </div>
         </div>
         <span className={`pill ${engine ? 'pill-ok' : 'pill-down'}`}>
@@ -125,8 +125,8 @@ export default function Privacy({ engine }) {
             <label className="dropzone">
               <input type="file" accept="image/*" hidden onChange={(e) => newImage(e.target.files[0])} />
               <img className="dropzone-mascot" src="/mascot-select.png" alt="" />
-              <p className="dropzone-title">비식별화할 사진을 올려주세요</p>
-              <p className="dropzone-sub">현장 사진 · CCTV 캡처 · 사고 사진 — 업로드 즉시 자동 분석됩니다</p>
+              <p className="dropzone-title">사진을 올리면 바로 찾아드려요</p>
+              <p className="dropzone-sub">현장 사진 · CCTV 캡처 · 사고 사진 — 얼굴과 번호판을 자동으로 찾아 표시합니다</p>
             </label>
           )}
 
@@ -164,7 +164,7 @@ export default function Privacy({ engine }) {
                   <div className="stage-busy">
                     <div className="scanline" />
                     <img src="/mascot-erase.png" alt="" />
-                    <span>제거하고 배경을 복원하는 중…</span>
+                    <span>지우고 배경을 메우는 중…</span>
                   </div>
                 )}
               </div>
@@ -177,7 +177,7 @@ export default function Privacy({ engine }) {
                 before={imageURL}
                 after={result.url}
                 beforeLabel="원본"
-                afterLabel="비식별 완료"
+                afterLabel="완료"
                 initial={15}
                 style={natural ? { aspectRatio: `${natural.w} / ${natural.h}`, maxWidth: `${Math.round(560 * (natural.w / natural.h))}px` } : undefined}
               />
@@ -190,8 +190,8 @@ export default function Privacy({ engine }) {
             <>
               <div className="tool-group">
                 <img className="result-mascot" src="/mascot-perfect.png" alt="" />
-                <span className="tool-label tool-label-done"><Icon.check /> 비식별 완료</span>
-                <p className="result-desc">{selected.length}개 항목이 제거되고 배경이 복원됐습니다.</p>
+                <span className="tool-label tool-label-done"><Icon.check /> 다 지웠어요</span>
+                <p className="result-desc">{selected.length}개 항목을 지우고 그 자리를 배경으로 복원했어요.</p>
                 {result.elapsed && <p className="result-meta">처리 {(result.elapsed / 1000).toFixed(1)}초</p>}
               </div>
               <button className="btn btn-primary btn-block" onClick={download}><Icon.download /> 이미지 저장</button>
@@ -201,9 +201,14 @@ export default function Privacy({ engine }) {
           ) : (
             <>
               <div className="tool-group">
-                <span className="tool-label">감지된 개인정보 {dets ? `· ${dets.length}건` : ''}</span>
-                {!dets && <p className="result-desc">사진을 올리면 자동으로 분석합니다.</p>}
-                {dets && !dets.length && <p className="result-desc">감지된 항목이 없습니다. 수동 편집은 스튜디오를 이용하세요.</p>}
+                <span className="tool-label">찾아낸 개인정보 {dets ? `· ${dets.length}건` : ''}</span>
+                {!dets && <p className="result-desc">사진을 올리면 자동으로 찾아드립니다.</p>}
+                {dets && !dets.length && (
+                  <p className="result-desc">
+                    자동으로 찾은 항목이 없어요. 서류 속 번호나 명찰처럼 자동으로 못 찾는 정보는
+                    <a href="#/studio"> 스튜디오</a>에서 칠해서 지울 수 있어요.
+                  </p>
+                )}
                 {dets && dets.length > 0 && (
                   <ul className="pv-list">
                     {dets.map((d, i) => (
@@ -230,7 +235,7 @@ export default function Privacy({ engine }) {
                 onClick={runRemove}
                 disabled={!selected.length || phase === 'detecting' || phase === 'removing'}
               >
-                {phase === 'removing' ? '복원 중…' : `${selected.length || 0}개 제거·복원`}
+                {phase === 'removing' ? '지우는 중…' : `${selected.length || 0}개 지우기`}
               </button>
               {imageURL && <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => newImage(e.target.files[0])} /></label>}
             </>
