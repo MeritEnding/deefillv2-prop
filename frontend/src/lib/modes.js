@@ -42,6 +42,15 @@ export const MODES = [
     brush: 42,
   },
   {
+    id: 'batch',
+    name: '일괄 지우기',
+    icon: 'layers',
+    short: '여러 장 한 번에',
+    hint: '같은 위치의 워터마크를 여러 장에서 한 번에 지웁니다.',
+    brush: 26,
+    special: 'batch',
+  },
+  {
     id: 'outpaint',
     name: '배경 확장',
     icon: 'expand',
