@@ -1,63 +1,48 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import NavBar from './components/NavBar.jsx'
-import Paywall from './components/Paywall.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Landing from './pages/Landing.jsx'
-import Editor from './pages/Editor.jsx'
-import Pricing from './pages/Pricing.jsx'
-import { account, loadAccount } from './lib/account.js'
+import Studio from './pages/Studio.jsx'
+import { MODE_MAP } from './lib/modes.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 
-function useHashRoute() {
-  const parse = () => window.location.hash.replace(/^#/, '') || '/'
-  const [route, setRoute] = useState(parse())
-  useEffect(() => {
-    const on = () => setRoute(parse())
-    window.addEventListener('hashchange', on)
-    return () => window.removeEventListener('hashchange', on)
-  }, [])
-  const navigate = (to) => {
-    window.location.hash = to
-    window.scrollTo({ top: 0 })
-  }
-  return [route, navigate]
+function parseHash() {
+  const raw = window.location.hash.replace(/^#/, '') || '/'
+  const [path, query] = raw.split('?')
+  const params = new URLSearchParams(query || '')
+  return { path, mode: params.get('mode') }
 }
 
 export default function App() {
-  const [route, navigate] = useHashRoute()
-  const [acc, setAcc] = useState(loadAccount())
-  const [paywall, setPaywall] = useState(false)
+  const [{ path, mode }, setRoute] = useState(parseHash())
   const [engine, setEngine] = useState(null)
-  const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/health`)
-      .then((r) => r.json())
-      .then((d) => setEngine(d.engine ?? null))
-      .catch(() => setEngine(null))
+    const on = () => setRoute(parseHash())
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
   }, [])
 
-  const buy = (plan) => {
-    setAcc(account.addCredits(acc, plan.credits))
-    setPaywall(false)
-    setToast(`${plan.name} 구매 완료 · 크레딧 ${plan.credits}장 충전됐어요`)
-    setTimeout(() => setToast(null), 3200)
-    if (route === '/pricing') navigate('/editor')
-  }
+  useEffect(() => {
+    fetch(`${API_BASE}/api/health`).then((r) => r.json()).then((d) => setEngine(d.engine ?? null)).catch(() => setEngine(null))
+  }, [])
+
+  const navigate = (to) => { window.location.hash = to; window.scrollTo({ top: 0 }) }
+  const modeId = MODE_MAP[mode] ? mode : 'object'
+  const setModeId = (id) => navigate(`/studio?mode=${id}`)
 
   return (
     <>
-      <NavBar route={route} navigate={navigate} acc={acc} />
-      {route === '/editor' ? (
-        <Editor acc={acc} setAcc={setAcc} engine={engine} requirePaywall={() => setPaywall(true)} />
-      ) : route === '/pricing' ? (
-        <Pricing acc={acc} onBuy={buy} navigate={navigate} />
+      <NavBar route={path} navigate={navigate} />
+      {path === '/studio' ? (
+        <ErrorBoundary onReset={() => navigate('/studio')}>
+          <Studio modeId={modeId} setModeId={setModeId} engine={engine} />
+        </ErrorBoundary>
       ) : (
         <Landing navigate={navigate} />
       )}
-      {paywall && <Paywall onClose={() => setPaywall(false)} onBuy={buy} />}
-      {toast && <div className="toast">{toast}</div>}
     </>
   )
 }
