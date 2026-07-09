@@ -192,6 +192,8 @@
 .stage-result .ba { margin: 0 auto; }
 .stage-canvas { display: block; max-width: 100%; height: auto; border-radius: 8px; touch-action: none; box-shadow: var(--shadow); }
 .stage-canvas.tool-brush, .stage-canvas.tool-erase { cursor: none; }
+.stage-canvas.tool-smart { cursor: crosshair; }
+.tool-tip { font-size: 0.78rem; color: var(--text-faint); line-height: 1.5; }
 .stage-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.82rem; font-weight: 600; padding: 0.35rem 0.85rem; border-radius: 999px; background: rgba(0, 0, 0, 0.62); color: #fff; backdrop-filter: blur(6px); pointer-events: none; white-space: nowrap; }
 
 .brush-cursor { position: fixed; z-index: 60; transform: translate(-50%, -50%); border: 2px solid rgba(37, 99, 235, 0.9); background: rgba(37, 99, 235, 0.16); border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5); }

@@ -97,6 +97,12 @@ export const Icon = {
       <path d="m5 12 5 5L20 7" />
     </svg>
   ),
+  wand: (p) => (
+    <svg viewBox="0 0 24 24" width="20" height="20" {...S} {...p}>
+      <path d="M15 4V2M15 10V8M11 6h2M19 6h2M18.5 2.5l-1 1M18.5 9.5l-1-1M12.5 3.5l1 1" />
+      <path d="M13.2 8.2 3 18.4 5.6 21l10.2-10.2-2.6-2.6Z" />
+    </svg>
+  ),
   warn: (p) => (
     <svg viewBox="0 0 24 24" width="22" height="22" {...S} {...p}>
       <path d="M12 4 2.8 19.5h18.4L12 4Z" />

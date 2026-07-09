@@ -38,6 +38,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
   const [tool, setTool] = useState('brush')
   const [brushSize, setBrushSize] = useState(mode.brush ?? 30)
   const [busy, setBusy] = useState(false)
+  const [smartBusy, setSmartBusy] = useState(false)
   const [result, setResult] = useState(null) // {url, blob}
   const [error, setError] = useState(null)
   const [copied, setCopied] = useState(false)
@@ -69,7 +70,17 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     mctx.fillRect(0, 0, mask.width, mask.height)
     const scale = mask.width / disp.width
     for (const s of list || []) {
-      if (!s || !s.points || !s.points.length) continue
+      if (!s) continue
+      if (s.mode === 'auto') {
+        // 스마트 클릭 결과: 원본 해상도 마스크 + 파란 틴트 오버레이
+        octx.globalCompositeOperation = 'source-over'
+        octx.drawImage(s.tint, 0, 0, overlay.width, overlay.height)
+        mctx.globalCompositeOperation = 'lighten'
+        mctx.drawImage(s.m, 0, 0, mask.width, mask.height)
+        mctx.globalCompositeOperation = 'source-over'
+        continue
+      }
+      if (!s.points || !s.points.length) continue
       octx.globalCompositeOperation = s.mode === 'erase' ? 'destination-out' : 'source-over'
       stroke(octx, s.points, 1, 'rgba(37,99,235,0.5)', s.size)
       mctx.globalCompositeOperation = 'source-over'
@@ -138,6 +149,11 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
   }
   const onDown = (e) => {
     if (!imgRef.current || isOutpaint) return
+    if (tool === 'smart') {
+      const p = pointFrom(e)
+      runSmartSelect(p.x / dispRef.current.width, p.y / dispRef.current.height)
+      return
+    }
     dispRef.current.setPointerCapture(e.pointerId)
     drawing.current = true
     cur.current = { mode: tool, size: brushSize, points: [pointFrom(e)] }
@@ -145,7 +161,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
   }
   const onMove = (e) => {
     const r = dispRef.current?.getBoundingClientRect()
-    if (r) setCursor({ x: e.clientX, y: e.clientY, size: brushSize * (r.width / dispRef.current.width) })
+    if (r && tool !== 'smart') setCursor({ x: e.clientX, y: e.clientY, size: brushSize * (r.width / dispRef.current.width) })
     if (!drawing.current || !cur.current) return
     cur.current.points.push(pointFrom(e))
     renderAll([...strokes, cur.current])
@@ -179,6 +195,42 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [undo, redoAct])
+
+  // 클릭 지점의 객체를 서버(GrabCut)가 분리해 마스크 스트로크로 추가
+  const runSmartSelect = async (nx, ny) => {
+    if (!imageFile || smartBusy) return
+    setSmartBusy(true); setError(null)
+    try {
+      const form = new FormData()
+      form.append('image', imageFile, 'image.png')
+      form.append('x', nx)
+      form.append('y', ny)
+      const res = await fetch(`${API_BASE}/api/segment`, { method: 'POST', body: form })
+      if (!res.ok) {
+        const msg = await res.json().then((d) => d.message).catch(() => null)
+        throw new Error(msg ?? `서버 오류 (${res.status})`)
+      }
+      const bmp = await createImageBitmap(await res.blob())
+      const m = document.createElement('canvas')
+      m.width = bmp.width; m.height = bmp.height
+      const mx = m.getContext('2d')
+      mx.drawImage(bmp, 0, 0)
+      // 흰색(객체) → 반투명 파랑, 검정 → 투명 틴트 생성
+      const t = document.createElement('canvas')
+      t.width = bmp.width; t.height = bmp.height
+      const tx = t.getContext('2d')
+      const src = mx.getImageData(0, 0, m.width, m.height)
+      const out = tx.createImageData(m.width, m.height)
+      for (let i = 0; i < src.data.length; i += 4) {
+        if (src.data[i] > 127) {
+          out.data[i] = 37; out.data[i + 1] = 99; out.data[i + 2] = 235; out.data[i + 3] = 128
+        }
+      }
+      tx.putImageData(out, 0, 0)
+      setStrokes((prev) => [...prev, { mode: 'auto', m, tint: t }])
+      setRedo([])
+    } catch (e) { setError(e.message ?? '영역 선택에 실패했어요.') } finally { setSmartBusy(false) }
+  }
 
   const postInpaint = async (imageBlob, maskBlob) => {
     const form = new FormData()
@@ -302,7 +354,10 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
                 onPointerUp={onUp}
                 onPointerLeave={() => { onUp(); setCursor(null) }}
               />
-              {!strokes.length && !busy && <div className="stage-hint">{mode.hint}</div>}
+              {smartBusy && <div className="stage-hint">영역을 찾는 중…</div>}
+              {!smartBusy && !strokes.length && !busy && (
+                <div className="stage-hint">{tool === 'smart' ? '지울 대상을 클릭하세요' : mode.hint}</div>
+              )}
               {busy && (
                 <div className="stage-busy">
                   <div className="scanline" />
@@ -370,9 +425,11 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
                 <div className="tool-group">
                   <span className="tool-label">도구</span>
                   <div className="seg">
-                    <button className={tool === 'brush' ? 'on' : ''} onClick={() => setTool('brush')}><Icon.brush /> 브러시</button>
-                    <button className={tool === 'erase' ? 'on' : ''} onClick={() => setTool('erase')}><Icon.eraser width="18" height="18" /> 선택 지우기</button>
+                    <button className={tool === 'smart' ? 'on' : ''} onClick={() => setTool('smart')}><Icon.wand width="16" height="16" /> 스마트</button>
+                    <button className={tool === 'brush' ? 'on' : ''} onClick={() => setTool('brush')}><Icon.brush width="16" height="16" /> 브러시</button>
+                    <button className={tool === 'erase' ? 'on' : ''} onClick={() => setTool('erase')}><Icon.eraser width="16" height="16" /> 지우개</button>
                   </div>
+                  {tool === 'smart' && <p className="tool-tip">지울 대상을 클릭하면 AI가 영역을 자동으로 선택합니다.</p>}
                 </div>
                 <div className="tool-group">
                   <span className="tool-label">브러시 크기 · {brushSize}px</span>
