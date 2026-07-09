@@ -285,6 +285,19 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18p
 .pv-list label:hover { background: var(--surface-2); }
 .pv-list em { margin-left: auto; font-style: normal; font-size: 0.75rem; color: var(--text-faint); }
 .pv-list input { accent-color: var(--blue); }
+.pv-score { flex: 1; max-width: 70px; height: 4px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-left: 0.3rem; }
+.pv-score i { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, var(--blue)); border-radius: 999px; }
+
+/* 관제 콘솔 */
+.pv-telemetry { margin-top: 1.3rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.pv-chips { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; padding: 0.75rem 1.2rem; background: #fff; border-bottom: 1px solid var(--border); }
+.pv-chip { font-size: 0.82rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.pv-chip b { font-size: 0.72rem; font-weight: 700; color: var(--text-faint); margin-right: 0.45rem; letter-spacing: 0.02em; }
+.pv-console { background: #0c1017; padding: 0.8rem 1.2rem; max-height: 150px; overflow-y: auto; font-family: Consolas, 'Courier New', monospace; }
+.pv-line { font-size: 0.78rem; line-height: 1.75; color: #a9c1e8; white-space: nowrap; }
+.pv-line span { color: #5b6b85; margin-right: 0.5rem; }
+.pv-err { color: #f0839a; }
+.pv-dim { color: #5b6b85; }
 
 /* ===== 관리자 콘솔 ===== */
 .admin-gate { max-width: 380px; margin: 3.5rem auto; text-align: center; display: flex; flex-direction: column; gap: 0.9rem; align-items: center; }
