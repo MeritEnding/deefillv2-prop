@@ -280,7 +280,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
           {!imageURL && (
             <label className="dropzone">
               <input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} />
-              <div className="tile tile-lg"><Icon.image width="30" height="30" /></div>
+              <img className="dropzone-mascot" src="/mascot-select.png" alt="" />
               <p className="dropzone-title">사진을 끌어다 놓거나 클릭해서 선택</p>
               <p className="dropzone-sub">붙여넣기(Ctrl+V)도 됩니다 · JPG · PNG</p>
               <div className="samples">
@@ -306,7 +306,8 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
               {busy && (
                 <div className="stage-busy">
                   <div className="scanline" />
-                  <span>AI가 복원하는 중…</span>
+                  <img src="/mascot-erase.png" alt="" />
+                  <span>지우가 지우는 중…</span>
                 </div>
               )}
             </div>
@@ -319,6 +320,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
               {busy && (
                 <div className="stage-busy">
                   <div className="scanline" />
+                  <img src="/mascot-erase.png" alt="" />
                   <span>배경을 그려내는 중…</span>
                 </div>
               )}
@@ -394,6 +396,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
           ) : (
             <>
               <div className="tool-group">
+                <img className="result-mascot" src="/mascot-perfect.png" alt="" />
                 <span className="tool-label tool-label-done"><Icon.check /> 완성됐어요</span>
                 <p className="result-desc">HD 원본으로 저장하거나 클립보드에 복사하세요.</p>
                 {result.elapsed && (
