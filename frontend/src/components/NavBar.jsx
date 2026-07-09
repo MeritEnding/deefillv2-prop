@@ -8,7 +8,7 @@ export default function NavBar({ route, navigate }) {
     <header className="nav">
       <div className="nav-inner">
         <a className="brand" href="#/" onClick={() => navigate('/')}>
-          <span className="brand-mark" />
+          <img className="brand-logo" src="/logo-icon.png" alt="지움 로고" />
           <span className="brand-name">지움</span>
         </a>
         <nav className="nav-links">
@@ -16,7 +16,7 @@ export default function NavBar({ route, navigate }) {
           {link('/studio', '스튜디오')}
         </nav>
         <div className="nav-right">
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/studio')}>
+          <button className="btn btn-dark btn-sm" onClick={() => navigate('/studio')}>
             무료로 시작하기
           </button>
         </div>
