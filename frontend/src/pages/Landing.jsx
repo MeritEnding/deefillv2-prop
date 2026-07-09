@@ -245,6 +245,11 @@ export default function Landing({ navigate }) {
               <p>DeepFillv2 인페인팅 구조 변형에<br />따른 성능 개선과 실증 구현</p>
               <p>황지윤 · 이정훈 (2024)</p>
             </div>
+            <div>
+              <h4>Operations</h4>
+              <p><a href="#/admin">관리자 콘솔</a></p>
+              <p>감사 로그 · 사용량 통계</p>
+            </div>
           </div>
         </div>
         <p className="footer-fine">한밭대학교 정보통신공학과 졸업연구 기반 · 업로드한 사진은 처리 후 저장되지 않습니다.</p>
