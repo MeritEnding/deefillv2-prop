@@ -19,7 +19,7 @@
   --radius: 16px;
   --radius-sm: 11px;
   --maxw: 1180px;
-  --font: 'Pretendard', system-ui, 'Segoe UI', 'Malgun Gothic', Roboto, sans-serif;
+  --font: 'Pretendard Variable', 'Pretendard', system-ui, 'Segoe UI', 'Malgun Gothic', Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
