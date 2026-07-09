@@ -49,6 +49,18 @@ public class InferenceClient {
                 .body(byte[].class);
     }
 
+    public org.springframework.http.ResponseEntity<byte[]> redact(MultipartFile image) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+
+        return restClient.post()
+                .uri("/redact")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .toEntity(byte[].class);
+    }
+
     public String detect(MultipartFile image) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
