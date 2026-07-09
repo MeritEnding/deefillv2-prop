@@ -15,16 +15,16 @@ const METRICS = [
 ]
 
 const USE_CASES = [
-  { icon: 'bag', title: '중고거래 사진', desc: '배경의 개인 정보와 잡동사니 정리' },
-  { icon: 'plane', title: '여행 사진', desc: '행인, 전봇대, 간판 제거' },
-  { icon: 'box', title: '상품 사진', desc: '워터마크, 먼지, 반사광 제거' },
-  { icon: 'building', title: '부동산 매물', desc: '어질러진 물건을 지운 깔끔한 공간' },
+  { icon: 'shield', title: 'CCTV·현장 사진', desc: '보고서 첨부 전 얼굴을 자동 비식별' },
+  { icon: 'building', title: '건설·안전 보고', desc: '작업자 얼굴을 지우고 배경 복원' },
+  { icon: 'box', title: '보험·사고 접수', desc: '차량·인물 개인정보 정리' },
+  { icon: 'bag', title: '커머스·매물 사진', desc: '워터마크·잡동사니는 스튜디오에서' },
 ]
 
 const STEPS = [
-  { img: '/mascot-select.png', n: '01', title: '사진을 올리고', desc: '드래그, 클릭, 붙여넣기 무엇이든.' },
-  { img: '/mascot-erase.png', n: '02', title: '지울 곳을 칠하면', desc: '브러시로 슥슥, 대충 칠해도 됩니다.' },
-  { img: '/mascot-excited.png', n: '03', title: '3초 뒤에 완성', desc: 'AI가 배경을 그려 자연스럽게 지웁니다.' },
+  { img: '/mascot-select.png', n: '01', title: '업로드하면 자동 분석', desc: '얼굴 등 개인정보를 AI가 찾아냅니다.' },
+  { img: '/mascot-erase.png', n: '02', title: '제거할 항목만 선택', desc: '박스를 눌러 지울 대상을 고르세요.' },
+  { img: '/mascot-excited.png', n: '03', title: '지우고, 자연 복원', desc: '모자이크 대신 배경을 다시 그립니다.' },
 ]
 
 function GalleryCarousel() {
@@ -71,17 +71,19 @@ export default function Landing({ navigate }) {
       <section className="hero">
         <div className="hero-inner">
           <div className="hero-copy">
-            <span className="hero-eyebrow">AI Image Inpainting</span>
+            <span className="hero-eyebrow">AI Privacy Redaction</span>
             <h1 className="hero-title">
-              지우면,<br />처음부터 없던 것처럼.
+              가리지 말고,<br />지우세요.
             </h1>
             <p className="hero-sub">
-              사진 속 행인도, 워터마크도, 낡은 사진의 흠집도.
-              브러시로 칠하기만 하면 AI가 배경을 다시 그려 채웁니다.
+              모자이크는 티가 납니다. 지움은 사진 속 얼굴 등 개인정보를 자동으로 찾아
+              제거하고, 그 자리를 배경으로 자연스럽게 복원합니다.
+              CCTV 캡처·현장 사진·사고 접수, 그대로 보고서에 쓰세요.
             </p>
             <div className="hero-cta">
-              <button className="btn btn-white btn-lg" onClick={() => navigate('/studio')}>스튜디오 열기</button>
-              <span className="hero-free">가입 없음 · 설치 없음 · 무료</span>
+              <button className="btn btn-white btn-lg" onClick={() => navigate('/privacy')}>비식별화 시작</button>
+              <button className="btn btn-hero-ghost btn-lg" onClick={() => navigate('/studio')}>수동 스튜디오</button>
+              <span className="hero-free">가입 없음 · 무료</span>
             </div>
           </div>
           <div className="hero-visual">
@@ -154,8 +156,8 @@ export default function Landing({ navigate }) {
       <section className="section section-tint">
         <div className="section-inner">
           <div className="section-head">
-            <h2 className="sec-title">How to <i>|</i> <small>사용법</small></h2>
-            <p className="section-sub">포토샵도, 설치도 필요 없습니다.</p>
+            <h2 className="sec-title">Pipeline <i>|</i> <small>처리 과정</small></h2>
+            <p className="section-sub">탐지(YuNet) → 마스크 → 인페인팅(LaMa) 파이프라인이 자동으로 이어집니다.</p>
           </div>
           <div className="steps">
             {STEPS.map((s) => (
@@ -189,12 +191,37 @@ export default function Landing({ navigate }) {
         </div>
       </section>
 
+      {/* 기업 연동 API */}
+      <section className="section">
+        <div className="api-split">
+          <div>
+            <h2 className="sec-title">For business <i>|</i> <small>연동 API</small></h2>
+            <p className="section-sub">
+              웹 화면 없이도 씁니다. 업로드 한 번이면 탐지부터 복원까지 —
+              사내 시스템·업무 자동화에 REST API로 바로 붙이세요.
+              키 인증과 사용량 집계를 지원합니다.
+            </p>
+            <ul className="api-points">
+              <li>원콜 처리 — 탐지 → 제거 → 자연 복원</li>
+              <li><code>X-API-Key</code> 인증 · 키별 사용량 조회(<code>/api/v1/usage</code>)</li>
+              <li>처리 결과 헤더 — <code>X-Redacted-Count</code></li>
+            </ul>
+          </div>
+          <pre className="api-code">{`curl -X POST http://localhost:8080/api/v1/redact \\
+  -H "X-API-Key: <발급받은 키>" \\
+  -F "image=@site-photo.jpg" \\
+  -o redacted.png
+
+# X-Redacted-Count: 3  (제거된 개인정보 수)`}</pre>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="cta-band">
         <div className="cta-band-inner">
           <h2>한 장 지워보면 압니다.</h2>
           <p>회원 가입 없이 브라우저에서 바로.</p>
-          <button className="btn btn-white btn-lg" onClick={() => navigate('/studio')}>무료로 시작하기</button>
+          <button className="btn btn-white btn-lg" onClick={() => navigate('/privacy')}>무료로 시작하기</button>
         </div>
       </section>
 
