@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,6 +55,18 @@ public class InpaintController {
                 .header("X-Engine", inferenceClient.engineName())
                 .header("X-Elapsed-Ms", String.valueOf(elapsed))
                 .body(result);
+    }
+
+    @PostMapping(value = "/segment", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> segment(@RequestPart("image") MultipartFile image,
+                                          @RequestParam("x") double x,
+                                          @RequestParam("y") double y) throws IOException {
+        validateImage(image, "원본 이미지");
+        if (x < 0 || x > 1 || y < 0 || y > 1) {
+            throw new InvalidUploadException("클릭 좌표가 이미지 밖입니다.");
+        }
+        byte[] mask = inferenceClient.segment(image, x, y);
+        return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(mask);
     }
 
     private void validateImage(MultipartFile file, String label) {
