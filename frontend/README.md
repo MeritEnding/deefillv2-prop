@@ -1,16 +1,16 @@
-# React + Vite
+# LHNet Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+지움(LHNet) 웹 앱 — React + Vite.
 
-Currently, two official plugins are available:
+## 화면
+- `/#/` — 랜딩 (비식별 플랫폼 소개, 복원 갤러리, 연구 지표, 연동 API)
+- `/#/privacy` — **비식별화 워크플로** (메인): 업로드 → 얼굴 자동 탐지 → 항목 선택 → 제거·자연 복원
+- `/#/studio` — 수동 스튜디오: 객체 지우개(스마트 클릭·브러시), 워터마크 제거, 사진 복원, 일괄 지우기, 배경 확장 등
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 실행
+```bash
+npm install
+npm run dev      # 5173 — 백엔드(lhnet-backend)가 8080에 떠 있어야 함
+```
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+환경변수: `VITE_API_BASE` (기본 `http://localhost:8080`)
