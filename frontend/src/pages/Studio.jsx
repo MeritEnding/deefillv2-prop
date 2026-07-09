@@ -359,7 +359,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
                 </div>
                 {error && <p className="error">{error}</p>}
                 <button className="btn btn-primary btn-block btn-run" onClick={runOutpaint} disabled={!imageURL || busy}>
-                  {busy ? '확장 중…' : '✨ 배경 확장'}
+                  {busy ? '확장 중…' : <><Icon.sparkle width="18" height="18" /> 배경 확장</>}
                 </button>
                 <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} /></label>
               </>
@@ -386,7 +386,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
                 </div>
                 {error && <p className="error">{error}</p>}
                 <button className="btn btn-primary btn-block btn-run" onClick={runRemoval} disabled={!imageURL || busy || !strokes.length}>
-                  {busy ? '지우는 중…' : '✨ 지우기 실행'}
+                  {busy ? '지우는 중…' : <><Icon.sparkle width="18" height="18" /> 지우기 실행</>}
                 </button>
                 <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} /></label>
               </>
@@ -394,7 +394,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
           ) : (
             <>
               <div className="tool-group">
-                <span className="tool-label">완성됐어요 🎉</span>
+                <span className="tool-label tool-label-done"><Icon.check /> 완성됐어요</span>
                 <p className="result-desc">HD 원본으로 저장하거나 클립보드에 복사하세요.</p>
                 {result.elapsed && (
                   <p className="result-meta">
