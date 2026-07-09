@@ -97,6 +97,12 @@ export const Icon = {
       <path d="m5 12 5 5L20 7" />
     </svg>
   ),
+  warn: (p) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" {...S} {...p}>
+      <path d="M12 4 2.8 19.5h18.4L12 4Z" />
+      <path d="M12 10v4.5M12 17.3v.2" />
+    </svg>
+  ),
   image: (p) => (
     <svg viewBox="0 0 24 24" width="22" height="22" {...S} {...p}>
       <rect x="3" y="4" width="18" height="16" rx="2" />

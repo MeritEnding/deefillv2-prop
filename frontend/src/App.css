@@ -159,6 +159,7 @@
 .tool-label { font-size: 0.82rem; font-weight: 700; color: var(--text-dim); }
 .result-desc { font-size: 0.87rem; color: var(--text-dim); }
 .result-meta { font-size: 0.79rem; color: var(--text-faint); }
+.tool-label-done { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--success); }
 .seg { display: flex; gap: 0.4rem; }
 .seg button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.55rem; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-dim); font-size: 0.85rem; font-weight: 600; }
 .seg button.on { border-color: var(--blue-tint-2); background: var(--blue-tint); color: var(--blue-light); }
@@ -170,7 +171,7 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18p
 
 /* ===== 크래시 폴백 ===== */
 .crash { text-align: center; padding: 4rem 2rem; }
-.crash-icon { font-size: 2.5rem; }
+.crash-icon { color: var(--danger); }
 .crash h3 { margin: 0.8rem 0 0.4rem; font-size: 1.3rem; }
 .crash p { color: var(--text-dim); margin-bottom: 1.3rem; }
 
