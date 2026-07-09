@@ -17,10 +17,17 @@ export default function Privacy({ engine }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [logs, setLogs] = useState([]) // 관제 콘솔 이벤트 로그 (최신이 위)
+  const [metrics, setMetrics] = useState({}) // {detectMs, restoreMs}
 
   const imgElRef = useRef(null)
 
-  const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle') }
+  const pushLog = (msg, level = 'info') => {
+    const t = new Date().toLocaleTimeString('ko-KR', { hour12: false })
+    setLogs((l) => [{ t, msg, level }, ...l].slice(0, 60))
+  }
+
+  const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle'); setMetrics({}) }
 
   const loadFile = async (file) => {
     if (!file || !file.type?.startsWith('image/')) return
@@ -29,13 +36,17 @@ export default function Privacy({ engine }) {
     const url = URL.createObjectURL(file)
     setImageURL(url)
     const img = new Image()
-    img.onload = () => setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+    img.onload = () => {
+      setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+      pushLog(`업로드 ${file.name} · ${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(2)}MB`)
+    }
     img.src = url
     runDetect(file)
   }
 
   const runDetect = async (file) => {
     setPhase('detecting'); setError(null)
+    const started = performance.now()
     try {
       const form = new FormData()
       form.append('image', file, 'image.png')
@@ -45,9 +56,15 @@ export default function Privacy({ engine }) {
         throw new Error(msg ?? `서버 오류 (${res.status})`)
       }
       const data = await res.json()
+      const ms = performance.now() - started
+      setMetrics((m) => ({ ...m, detectMs: ms }))
+      const faces = data.detections.filter((d) => d.type === 'face').length
+      const plates = data.detections.filter((d) => d.type === 'plate').length
+      pushLog(`탐지 완료 · 얼굴 ${faces} · 번호판 ${plates} · ${(ms / 1000).toFixed(2)}s (YuNet+Cascade)`)
       setDets(data.detections.map((d) => ({ ...d, on: true })))
       setPhase('ready')
     } catch (e) {
+      pushLog(`탐지 실패 · ${e.message}`, 'error')
       setError(e.message ?? '자동 탐지에 실패했어요.')
       setDets([])
       setPhase('ready')
@@ -61,6 +78,7 @@ export default function Privacy({ engine }) {
   const runRemove = async () => {
     if (!imageFile || !natural || !selected.length || phase === 'removing') return
     setPhase('removing'); setError(null)
+    pushLog(`지우기 시작 · ${selected.length}개 영역 (마진 ${Math.round(MASK_MARGIN * 100)}%)`)
     try {
       // 선택된 박스들을 타원 마스크로 렌더링
       const mc = document.createElement('canvas')
@@ -85,9 +103,13 @@ export default function Privacy({ engine }) {
       }
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
+      const engineName = res.headers.get('X-Engine')
+      setMetrics((m) => ({ ...m, restoreMs: elapsed }))
+      pushLog(`복원 완료 · ${selected.length}개 영역 · ${elapsed ? (elapsed / 1000).toFixed(2) + 's' : '-'} · ${engineName ?? 'engine'}`)
       setResult({ url: URL.createObjectURL(blob), blob, elapsed })
       setPhase('done')
     } catch (e) {
+      pushLog(`복원 실패 · ${e.message}`, 'error')
       setError(e.message ?? '제거에 실패했어요.')
       setPhase('ready')
     }
@@ -216,6 +238,9 @@ export default function Privacy({ engine }) {
                         <label>
                           <input type="checkbox" checked={d.on} onChange={() => toggle(i)} />
                           <span>{TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
+                          <span className="pv-score" title={`신뢰도 ${Math.round(d.score * 100)}%`}>
+                            <i style={{ width: `${Math.round(d.score * 100)}%` }} />
+                          </span>
                           <em>{Math.round(d.score * 100)}%</em>
                         </label>
                       </li>
@@ -242,6 +267,27 @@ export default function Privacy({ engine }) {
           )}
         </aside>
       </div>
+
+      {/* 관제 콘솔 — 처리 지표·이벤트 로그 */}
+      {imageURL && (
+        <div className="pv-telemetry">
+          <div className="pv-chips">
+            <span className="pv-chip"><b>해상도</b>{natural ? `${natural.w}×${natural.h}` : '—'}</span>
+            <span className="pv-chip"><b>엔진</b>{engine ?? '—'}</span>
+            <span className="pv-chip"><b>탐지</b>{dets ? `${dets.length}건` : '—'}</span>
+            <span className="pv-chip"><b>탐지 시간</b>{metrics.detectMs ? `${(metrics.detectMs / 1000).toFixed(2)}s` : '—'}</span>
+            <span className="pv-chip"><b>복원 시간</b>{metrics.restoreMs ? `${(metrics.restoreMs / 1000).toFixed(2)}s` : '—'}</span>
+          </div>
+          <div className="pv-console">
+            {logs.length === 0 && <p className="pv-line pv-dim">이벤트 대기 중…</p>}
+            {logs.map((l, i) => (
+              <p key={i} className={`pv-line ${l.level === 'error' ? 'pv-err' : ''}`}>
+                <span>[{l.t}]</span> {l.msg}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   )
 }
