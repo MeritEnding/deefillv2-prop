@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 
 // 드래그로 원본/결과를 비교하는 슬라이더. clip-path로 위 레이어를 잘라 보여준다.
-export default function BeforeAfter({ before, after, beforeLabel = '원본', afterLabel = '제거 완료' }) {
-  const [pos, setPos] = useState(50)
+export default function BeforeAfter({ before, after, beforeLabel = '원본', afterLabel = '제거 완료', initial = 50, style }) {
+  const [pos, setPos] = useState(initial)
   const wrapRef = useRef(null)
   const dragging = useRef(false)
 
@@ -15,6 +15,7 @@ export default function BeforeAfter({ before, after, beforeLabel = '원본', aft
     <div
       ref={wrapRef}
       className="ba"
+      style={style}
       onPointerDown={(e) => {
         dragging.current = true
         e.currentTarget.setPointerCapture(e.pointerId)

@@ -326,11 +326,21 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
           )}
 
           {result && (
-            <div className="stage">
+            <div className="stage stage-result">
               {result.wide ? (
                 <img className="stage-canvas" src={result.url} alt="결과" />
               ) : (
-                <BeforeAfter before={imageURL} after={result.url} beforeLabel="원본" afterLabel="완료" />
+                <BeforeAfter
+                  before={imageURL}
+                  after={result.url}
+                  beforeLabel="원본"
+                  afterLabel="완료"
+                  initial={15}
+                  style={natural ? {
+                    aspectRatio: `${natural.w} / ${natural.h}`,
+                    maxWidth: `${Math.round(560 * (natural.w / natural.h))}px`,
+                  } : undefined}
+                />
               )}
             </div>
           )}
