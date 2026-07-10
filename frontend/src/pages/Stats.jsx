@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getJSON } from '../lib/api.js'
 
-const ACTION_LABEL = { inpaint: '스튜디오 지우기', redact: '자동 비식별 처리', restore: '얼굴 복원' }
+const ACTION_LABEL = { inpaint: '스튜디오 지우기', redact: '자동 비식별 처리', restore: '얼굴 복원', upscale: '고화질 확대' }
 
 const RESEARCH = [
   { label: 'PSNR', v: '29.01', d: '복원 품질 (개선 전 28.28)' },

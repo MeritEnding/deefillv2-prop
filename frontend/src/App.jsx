@@ -61,7 +61,7 @@ export default function App() {
         <PrivacyHub navigate={navigate} />
       ) : path === '/enhance' ? (
         <ErrorBoundary onReset={() => navigate('/enhance')}>
-          <Enhance engine={engine} modeId={mode ?? 'face'} />
+          <Enhance key={mode ?? 'face'} engine={engine} modeId={mode ?? 'face'} navigate={navigate} />
         </ErrorBoundary>
       ) : path === '/privacy/person' ? (
         <ErrorBoundary onReset={() => navigate('/privacy/person')}>

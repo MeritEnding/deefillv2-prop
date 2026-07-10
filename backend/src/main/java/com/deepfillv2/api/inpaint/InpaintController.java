@@ -48,6 +48,25 @@ public class InpaintController {
         }
     }
 
+    @PostMapping(value = "/upscale", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> upscale(@RequestPart("image") MultipartFile image,
+                                          @RequestParam(value = "scale", defaultValue = "2") int scale) throws IOException {
+        validateImage(image, "원본 이미지");
+        if (scale != 2 && scale != 4) {
+            throw new InvalidUploadException("배율은 2 또는 4만 지원합니다.");
+        }
+
+        long started = System.currentTimeMillis();
+        byte[] result = inferenceClient.upscale(image, scale);
+        long elapsed = System.currentTimeMillis() - started;
+        auditService.record("web", "upscale", 0, elapsed, "ok");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Elapsed-Ms", String.valueOf(elapsed))
+                .body(result);
+    }
+
     @PostMapping(value = "/inpaint", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> inpaint(@RequestPart("image") MultipartFile image,
                                           @RequestPart("mask") MultipartFile mask) throws IOException {

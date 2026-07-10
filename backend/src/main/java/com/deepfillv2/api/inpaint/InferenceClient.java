@@ -74,6 +74,19 @@ public class InferenceClient {
                 .body(String.class);
     }
 
+    public byte[] upscale(MultipartFile image, int scale) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+        parts.add("scale", String.valueOf(scale));
+
+        return restClient.post()
+                .uri("/upscale")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .body(byte[].class);
+    }
+
     public org.springframework.http.ResponseEntity<byte[]> restoreFaces(MultipartFile image) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
