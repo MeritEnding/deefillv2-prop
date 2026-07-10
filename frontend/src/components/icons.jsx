@@ -26,6 +26,14 @@ export const Icon = {
       <path d="M8.5 16c.6-1.6 2-2.5 3.5-2.5s2.9.9 3.5 2.5" />
     </svg>
   ),
+  car: (p) => (
+    <svg viewBox="0 0 24 24" width="22" height="22" {...S} {...p}>
+      <path d="M5 12 6.5 7.5A2 2 0 0 1 8.4 6h7.2a2 2 0 0 1 1.9 1.5L19 12M5 12h14a1 1 0 0 1 1 1v4h-2M5 12a1 1 0 0 0-1 1v4h2" />
+      <circle cx="8" cy="17" r="1.8" />
+      <circle cx="16" cy="17" r="1.8" />
+      <path d="M9.8 17h4.4" />
+    </svg>
+  ),
   home: (p) => (
     <svg viewBox="0 0 24 24" width="22" height="22" {...S} {...p}>
       <path d="M4 11l8-6 8 6M6 10v9h12v-9" />

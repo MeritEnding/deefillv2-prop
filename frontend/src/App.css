@@ -326,6 +326,16 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18p
 .admin-empty { font-size: 0.87rem; color: var(--text-faint); }
 @media (max-width: 900px) { .admin-grid { grid-template-columns: 1fr; } }
 
+/* ===== 개인정보 지우기 허브 ===== */
+.pvhub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.pvhub-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; text-align: left; border: 1px solid var(--border); background: #fff; padding: 1.5rem 1.5rem 1.3rem; font: inherit; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.pvhub-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.pvhub-head { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 0.3rem; }
+.pvhub-card h3 { font-size: 1.08rem; }
+.pvhub-card p { font-size: 0.88rem; line-height: 1.65; color: var(--text-dim); flex: 1; }
+.pvhub-cta { font-size: 0.86rem; font-weight: 700; color: var(--blue); margin-top: 0.5rem; }
+@media (max-width: 900px) { .pvhub-grid { grid-template-columns: 1fr; } }
+
 /* ===== 안내 페이지 공통 (공지·팁·사례·커뮤니티·통계) ===== */
 .page-narrow { max-width: 860px; margin: 0 auto; }
 .stats-h { font-family: var(--serif); font-weight: 500; font-size: 1.05rem; margin: 2.2rem 0 0.9rem; }

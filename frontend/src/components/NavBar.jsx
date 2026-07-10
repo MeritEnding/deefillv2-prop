@@ -1,9 +1,12 @@
 export default function NavBar({ route, navigate }) {
-  const link = (to, label) => (
-    <a className={route === to ? 'on' : ''} href={`#${to}`} onClick={() => navigate(to)}>
-      {label}
-    </a>
-  )
+  const link = (to, label) => {
+    const active = route === to || (to !== '/' && route.startsWith(`${to}/`))
+    return (
+      <a className={active ? 'on' : ''} href={`#${to}`} onClick={() => navigate(to)}>
+        {label}
+      </a>
+    )
+  }
   return (
     <header className="nav">
       <div className="nav-inner">
