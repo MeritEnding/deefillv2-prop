@@ -74,6 +74,18 @@ public class InferenceClient {
                 .body(String.class);
     }
 
+    public org.springframework.http.ResponseEntity<byte[]> restoreFaces(MultipartFile image) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+
+        return restClient.post()
+                .uri("/restore-faces")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .toEntity(byte[].class);
+    }
+
     public org.springframework.http.ResponseEntity<byte[]> segmentPeople(MultipartFile image) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
