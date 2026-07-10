@@ -77,6 +77,25 @@ public class InpaintController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image, targets));
     }
 
+    @PostMapping(value = "/restore", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> restore(@RequestPart("image") MultipartFile image) throws IOException {
+        validateImage(image, "원본 이미지");
+
+        long started = System.currentTimeMillis();
+        ResponseEntity<byte[]> result = inferenceClient.restoreFaces(image);
+        long elapsed = System.currentTimeMillis() - started;
+
+        String restoredCount = result.getHeaders().getFirst("X-Restored-Count");
+        int restored = restoredCount != null ? Integer.parseInt(restoredCount) : 0;
+        auditService.record("web", "restore", restored, elapsed, "ok");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Restored-Count", String.valueOf(restored))
+                .header("X-Elapsed-Ms", String.valueOf(elapsed))
+                .body(result.getBody());
+    }
+
     @PostMapping(value = "/segment-people", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> segmentPeople(@RequestPart("image") MultipartFile image) throws IOException {
         validateImage(image, "원본 이미지");

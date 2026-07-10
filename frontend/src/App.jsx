@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Admin from './pages/Admin.jsx'
 import Cases from './pages/Cases.jsx'
 import Community from './pages/Community.jsx'
+import Enhance from './pages/Enhance.jsx'
 import Landing from './pages/Landing.jsx'
 import Notices from './pages/Notices.jsx'
 import Privacy from './pages/Privacy.jsx'
@@ -58,6 +59,10 @@ export default function App() {
         <Stats />
       ) : path === '/privacy' ? (
         <PrivacyHub navigate={navigate} />
+      ) : path === '/enhance' ? (
+        <ErrorBoundary onReset={() => navigate('/enhance')}>
+          <Enhance engine={engine} modeId={mode ?? 'face'} />
+        </ErrorBoundary>
       ) : path === '/privacy/person' ? (
         <ErrorBoundary onReset={() => navigate('/privacy/person')}>
           <PersonErase engine={engine} />

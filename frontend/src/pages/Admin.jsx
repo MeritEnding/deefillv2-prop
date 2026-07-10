@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../components/icons.jsx'
 import { getJSON } from '../lib/api.js'
 
-const ACTION_LABEL = { inpaint: '수동 인페인팅', redact: 'API 비식별화' }
+const ACTION_LABEL = { inpaint: '수동 인페인팅', redact: 'API 비식별화', restore: '얼굴 복원' }
 
 // 운영자 콘솔: X-Admin-Key로 통계·감사 로그 조회
 export default function Admin() {
