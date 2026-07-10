@@ -4,8 +4,8 @@ import BatchPanel from './BatchPanel.jsx'
 import { Icon } from '../components/icons.jsx'
 import { MODES, MODE_MAP } from '../lib/modes.js'
 import { copyBlobToClipboard, downloadBlob } from '../lib/image.js'
+import { postForm } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const MAX_DISPLAY = 640
 const SAMPLES = ['/demo-before.png', '/sample-street.png']
 
@@ -207,11 +207,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
       form.append('image', imageFile, 'image.png')
       form.append('x', nx)
       form.append('y', ny)
-      const res = await fetch(`${API_BASE}/api/segment`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const msg = await res.json().then((d) => d.message).catch(() => null)
-        throw new Error(msg ?? `서버 오류 (${res.status})`)
-      }
+      const res = await postForm('/api/segment', form)
       const bmp = await createImageBitmap(await res.blob())
       const m = document.createElement('canvas')
       m.width = bmp.width; m.height = bmp.height
@@ -238,12 +234,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     const form = new FormData()
     form.append('image', imageBlob, 'image.png')
     form.append('mask', maskBlob, 'mask.png')
-    const res = await fetch(`${API_BASE}/api/inpaint`, { method: 'POST', body: form })
-    if (!res.ok) {
-      // 백엔드가 내려주는 표준 에러 JSON의 message를 그대로 보여준다
-      const msg = await res.json().then((d) => d.message).catch(() => null)
-      throw new Error(msg ?? `서버 오류 (${res.status})`)
-    }
+    const res = await postForm('/api/inpaint', form)
     const blob = await res.blob()
     const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
     return { blob, elapsed }

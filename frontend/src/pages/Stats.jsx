@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
+import { getJSON } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const ACTION_LABEL = { inpaint: '스튜디오 지우기', redact: '자동 비식별 처리' }
 
 const RESEARCH = [
@@ -15,10 +15,7 @@ export default function Stats() {
   const [down, setDown] = useState(false)
 
   const load = () => {
-    fetch(`${API_BASE}/api/stats`)
-      .then((r) => r.json())
-      .then(setLive)
-      .catch(() => setDown(true))
+    getJSON('/api/stats').then(setLive).catch(() => setDown(true))
   }
   useEffect(load, [])
 

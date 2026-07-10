@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../components/icons.jsx'
+import { getJSON } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const ACTION_LABEL = { inpaint: '수동 인페인팅', redact: 'API 비식별화' }
 
 // 운영자 콘솔: X-Admin-Key로 통계·감사 로그 조회
@@ -16,9 +16,7 @@ export default function Admin() {
     if (!key || busy) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/stats`, { headers: { 'X-Admin-Key': key } })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message ?? `서버 오류 (${res.status})`)
+      const data = await getJSON('/api/admin/stats', { headers: { 'X-Admin-Key': key } })
       sessionStorage.setItem('adminKey', key)
       setStats(data)
     } catch (err) { setError(err.message); setStats(null) } finally { setBusy(false) }
