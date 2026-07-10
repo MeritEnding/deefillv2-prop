@@ -25,6 +25,14 @@ const KINDS = {
     sample: null,
     beta: true,
   },
+  text: {
+    label: '텍스트 개인정보',
+    title: '텍스트 개인정보 지우기',
+    desc: '전화번호, 주민등록번호, 계좌·카드번호 같은 숫자 개인정보를 글자째 찾아 지웁니다.',
+    dropSub: '전단지 · 서류 · 차량 광고 — 전화번호·계좌번호 등을 자동으로 찾아 표시합니다',
+    sample: '/sample-text.png',
+    beta: true,
+  },
 }
 
 // 비식별화 워크플로: 업로드 → 자동 탐지 → 항목 선택 → 제거·자연 복원 → 저장
@@ -83,6 +91,7 @@ export default function Privacy({ engine, kind = 'face' }) {
     try {
       const form = new FormData()
       form.append('image', file, 'image.png')
+      form.append('targets', kind)
       const res = await postForm('/api/detect', form)
       const data = await res.json()
       const ms = performance.now() - started
@@ -115,10 +124,16 @@ export default function Privacy({ engine, kind = 'face' }) {
       ctx.fillStyle = 'black'
       ctx.fillRect(0, 0, mc.width, mc.height)
       ctx.fillStyle = 'white'
-      for (const { box: [x, y, w, h] } of selected) {
-        ctx.beginPath()
-        ctx.ellipse(x + w / 2, y + h / 2, (w / 2) * (1 + MASK_MARGIN), (h / 2) * (1 + MASK_MARGIN), 0, 0, Math.PI * 2)
-        ctx.fill()
+      for (const { type, box: [x, y, w, h] } of selected) {
+        if (type === 'text') {
+          // 글자는 각지게 — 타원은 획 끝을 남긴다
+          const mx = (w * MASK_MARGIN) / 2, my = (h * MASK_MARGIN) / 2
+          ctx.fillRect(x - mx, y - my, w + mx * 2, h + my * 2)
+        } else {
+          ctx.beginPath()
+          ctx.ellipse(x + w / 2, y + h / 2, (w / 2) * (1 + MASK_MARGIN), (h / 2) * (1 + MASK_MARGIN), 0, 0, Math.PI * 2)
+          ctx.fill()
+        }
       }
       const maskBlob = await new Promise((r) => mc.toBlob(r, 'image/png'))
       const form = new FormData()
@@ -264,7 +279,7 @@ export default function Privacy({ engine, kind = 'face' }) {
                       <li key={i}>
                         <label>
                           <input type="checkbox" checked={d.on} onChange={() => toggle(i)} />
-                          <span>{TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
+                          <span>{d.label ?? TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
                           <span className="pv-score" title={`신뢰도 ${Math.round(d.score * 100)}%`}>
                             <i style={{ width: `${Math.round(d.score * 100)}%` }} />
                           </span>

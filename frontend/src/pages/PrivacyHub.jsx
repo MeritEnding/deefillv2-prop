@@ -21,6 +21,15 @@ const ITEMS = [
     cta: '번호판 지우러 가기',
   },
   {
+    to: '/privacy/text',
+    icon: 'text',
+    tag: '자동 인식 · 베타',
+    auto: true,
+    title: '텍스트 개인정보 지우기',
+    desc: '전단지·서류 속 전화번호, 주민등록번호, 계좌·카드번호를 글자째 찾아 지웁니다.',
+    cta: '텍스트 지우러 가기',
+  },
+  {
     to: '/studio',
     icon: 'brush',
     tag: '클릭 · 붓질',

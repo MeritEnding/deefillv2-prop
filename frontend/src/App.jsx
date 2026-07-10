@@ -57,7 +57,7 @@ export default function App() {
         <Stats />
       ) : path === '/privacy' ? (
         <PrivacyHub navigate={navigate} />
-      ) : path === '/privacy/face' || path === '/privacy/plate' ? (
+      ) : path === '/privacy/face' || path === '/privacy/plate' || path === '/privacy/text' ? (
         <ErrorBoundary onReset={() => navigate(path)}>
           <Privacy key={path} engine={engine} kind={path.split('/')[2]} />
         </ErrorBoundary>
