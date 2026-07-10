@@ -19,6 +19,7 @@ training_checkpoints/
 *.pt
 big-lama.pt
 gfpgan_1.4.onnx
+plate_yolo11s.onnx
 
 # IDE / OS
 .idea/

@@ -23,7 +23,7 @@ const KINDS = {
     desc: '차량 번호판을 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.',
     dropSub: '주차장 · 사고 · 거리 사진 — 차량 번호판을 자동으로 찾아 표시합니다',
     sample: null,
-    beta: true,
+    beta: false,
   },
   text: {
     label: '텍스트 개인정보',
@@ -46,15 +46,9 @@ export default function Privacy({ engine, kind = 'face' }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [dragOver, setDragOver] = useState(false)
-  const [logs, setLogs] = useState([]) // 관제 콘솔 이벤트 로그 (최신이 위)
   const [metrics, setMetrics] = useState({}) // {detectMs, restoreMs}
 
   const imgElRef = useRef(null)
-
-  const pushLog = (msg, level = 'info') => {
-    const t = new Date().toLocaleTimeString('ko-KR', { hour12: false })
-    setLogs((l) => [{ t, msg, level }, ...l].slice(0, 60))
-  }
 
   const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle'); setMetrics({}) }
 
@@ -79,7 +73,6 @@ export default function Privacy({ engine, kind = 'face' }) {
     const img = new Image()
     img.onload = () => {
       setNatural({ w: img.naturalWidth, h: img.naturalHeight })
-      pushLog(`업로드 ${file.name} · ${img.naturalWidth}×${img.naturalHeight} · ${(file.size / 1024 / 1024).toFixed(2)}MB`)
     }
     img.src = url
     runDetect(file)
@@ -97,11 +90,9 @@ export default function Privacy({ engine, kind = 'face' }) {
       const ms = performance.now() - started
       setMetrics((m) => ({ ...m, detectMs: ms }))
       const matched = data.detections.filter((d) => d.type === kind)
-      pushLog(`탐지 완료 · ${meta.label} ${matched.length}건 · ${(ms / 1000).toFixed(2)}s`)
       setDets(matched.map((d) => ({ ...d, on: true })))
       setPhase('ready')
     } catch (e) {
-      pushLog(`탐지 실패 · ${e.message}`, 'error')
       setError(e.message ?? '자동 탐지에 실패했어요.')
       setDets([])
       setPhase('ready')
@@ -115,7 +106,6 @@ export default function Privacy({ engine, kind = 'face' }) {
   const runRemove = async () => {
     if (!imageFile || !natural || !selected.length || phase === 'removing') return
     setPhase('removing'); setError(null)
-    pushLog(`지우기 시작 · ${selected.length}개 영역 (마진 ${Math.round(MASK_MARGIN * 100)}%)`)
     try {
       // 선택된 박스들을 타원 마스크로 렌더링
       const mc = document.createElement('canvas')
@@ -143,16 +133,31 @@ export default function Privacy({ engine, kind = 'face' }) {
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
       const engineName = res.headers.get('X-Engine')
-      setMetrics((m) => ({ ...m, restoreMs: elapsed }))
-      pushLog(`복원 완료 · ${selected.length}개 영역 · ${elapsed ? (elapsed / 1000).toFixed(2) + 's' : '-'} · ${engineName ?? 'engine'}`)
+      setMetrics((m) => ({ ...m, restoreMs: elapsed, engineName }))
       setResult({ url: URL.createObjectURL(blob), blob, elapsed })
       setPhase('done')
     } catch (e) {
-      pushLog(`복원 실패 · ${e.message}`, 'error')
       setError(e.message ?? '제거에 실패했어요.')
       setPhase('ready')
     }
   }
+
+  // 처리 진행을 3단계로 요약 — 로그 나열 대신 지금 어디까지 왔는지 한눈에 보여준다
+  const detectError = Boolean(error) && (dets?.length ?? 0) === 0
+  const removeError = Boolean(error) && (dets?.length ?? 0) > 0
+  const steps = [
+    { key: 'up', label: '사진 업로드', hint: natural ? `${natural.w}×${natural.h}` : '준비 중', state: 'done' },
+    {
+      key: 'find', label: `${meta.label} 자동 찾기`,
+      hint: phase === 'detecting' ? '찾는 중…' : detectError ? '실패' : dets ? `${dets.length}건 찾음` : '대기',
+      state: phase === 'detecting' ? 'active' : detectError ? 'error' : dets != null ? 'done' : 'wait',
+    },
+    {
+      key: 'erase', label: '지우고 배경 복원',
+      hint: phase === 'removing' ? '지우는 중…' : phase === 'done' && result ? `${selected.length}건 완료` : removeError ? '실패' : '대기',
+      state: phase === 'removing' ? 'active' : phase === 'done' && result ? 'done' : removeError ? 'error' : 'wait',
+    },
+  ]
 
   const download = () => result && downloadBlob(result.blob, `jium-redacted-${Date.now()}.png`)
   const newImage = (file) => {
@@ -310,24 +315,50 @@ export default function Privacy({ engine, kind = 'face' }) {
         </aside>
       </div>
 
-      {/* 관제 콘솔 — 처리 지표·이벤트 로그 */}
+      {/* 처리 현황 — 진행 단계 · 요약 · 문제 안내를 사람이 읽기 좋게 */}
       {imageURL && (
-        <div className="pv-telemetry">
-          <div className="pv-chips">
-            <span className="pv-chip"><b>해상도</b>{natural ? `${natural.w}×${natural.h}` : '—'}</span>
-            <span className="pv-chip"><b>엔진</b>{engine ?? '—'}</span>
-            <span className="pv-chip"><b>탐지</b>{dets ? `${dets.length}건` : '—'}</span>
-            <span className="pv-chip"><b>탐지 시간</b>{metrics.detectMs ? `${(metrics.detectMs / 1000).toFixed(2)}s` : '—'}</span>
-            <span className="pv-chip"><b>복원 시간</b>{metrics.restoreMs ? `${(metrics.restoreMs / 1000).toFixed(2)}s` : '—'}</span>
-          </div>
-          <div className="pv-console">
-            {logs.length === 0 && <p className="pv-line pv-dim">이벤트 대기 중…</p>}
-            {logs.map((l, i) => (
-              <p key={i} className={`pv-line ${l.level === 'error' ? 'pv-err' : ''}`}>
-                <span>[{l.t}]</span> {l.msg}
-              </p>
+        <div className="pv-status">
+          <ol className="pv-steps">
+            {steps.map((s, i) => (
+              <li key={s.key} className={`pv-step pv-step-${s.state}`}>
+                <span className="pv-step-dot">
+                  {s.state === 'done' ? <Icon.check />
+                    : s.state === 'active' ? <span className="pv-spin" />
+                    : s.state === 'error' ? '!' : i + 1}
+                </span>
+                <span className="pv-step-body">
+                  <b>{s.label}</b>
+                  <small>{s.hint}</small>
+                </span>
+              </li>
             ))}
-          </div>
+          </ol>
+
+          {detectError || removeError ? (
+            <div className="pv-note">
+              <div>
+                <b>{detectError ? '자동으로 찾지 못했어요' : '지우는 중 문제가 생겼어요'}</b>
+                <p>
+                  {detectError
+                    ? '사진이 어둡거나 대상이 너무 작으면 못 찾을 수 있어요. 다른 사진으로 다시 시도하거나, 스튜디오에서 직접 칠해 지울 수 있어요.'
+                    : '일시적인 문제일 수 있어요. 잠시 후 다시 시도해 주세요.'}
+                </p>
+              </div>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => imageFile && (detectError ? runDetect(imageFile) : runRemove())}
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : (
+            <div className="pv-facts">
+              <span className="pv-fact"><b>{engine ?? '—'}</b>추론 엔진</span>
+              <span className="pv-fact"><b>{metrics.detectMs ? `${(metrics.detectMs / 1000).toFixed(1)}초` : '—'}</b>찾는 데 걸린 시간</span>
+              <span className="pv-fact"><b>{metrics.restoreMs ? `${(metrics.restoreMs / 1000).toFixed(1)}초` : '—'}</b>지우고 복원한 시간</span>
+              {metrics.engineName && phase === 'done' && <span className="pv-fact"><b>{metrics.engineName}</b>복원 엔진</span>}
+            </div>
+          )}
         </div>
       )}
     </main>
