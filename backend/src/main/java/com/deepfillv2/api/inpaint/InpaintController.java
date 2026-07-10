@@ -32,6 +32,12 @@ public class InpaintController {
         this.auditService = auditService;
     }
 
+    /** 인증 없는 공개 요약 통계 (통계 페이지용) — 총계만 노출, 개별 이력·키 없음. */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats() {
+        return ResponseEntity.ok(auditService.publicStats());
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         try {
