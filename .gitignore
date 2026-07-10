@@ -18,6 +18,7 @@ training_checkpoints/
 *.h5
 *.pt
 big-lama.pt
+gfpgan_1.4.onnx
 
 # IDE / OS
 .idea/
