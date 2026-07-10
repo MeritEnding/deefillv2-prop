@@ -36,17 +36,25 @@ public class InferenceClient {
                 .build();
     }
 
-    public byte[] inpaint(MultipartFile image, MultipartFile mask) throws IOException {
+    public org.springframework.http.ResponseEntity<byte[]> inpaint(MultipartFile image, MultipartFile mask, String engine) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
         parts.add("mask", asResource(mask, "mask.png"));
+        if (engine != null && !engine.isBlank()) {
+            parts.add("engine", engine);
+        }
 
         return restClient.post()
                 .uri("/inpaint")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(parts)
                 .retrieve()
-                .body(byte[].class);
+                .toEntity(byte[].class);
+    }
+
+    /** 사용 가능한 모델 카탈로그(JSON)를 추론 서비스에서 그대로 프록시한다. */
+    public String engines() {
+        return restClient.get().uri("/engines").retrieve().body(String.class);
     }
 
     public org.springframework.http.ResponseEntity<byte[]> redact(MultipartFile image) throws IOException {
