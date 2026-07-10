@@ -16,6 +16,6 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/api/**")
                 .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST")
-                .exposedHeaders("X-Engine", "X-Elapsed-Ms", "X-Redacted-Count");
+                .exposedHeaders("X-Engine", "X-Elapsed-Ms", "X-Redacted-Count", "X-Person-Coverage");
     }
 }
