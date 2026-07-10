@@ -14,6 +14,22 @@ const METRICS = [
   { label: 'FID', before: '3.1', after: '2.8', note: '분포 거리 · 낮을수록 자연스러움' },
 ]
 
+// 지울 수 있는 개인정보 — 기능 단위. auto: 업로드 즉시 자동 인식
+const REDACT_ITEMS = [
+  { t: '얼굴', d: '업로드 즉시 사진 속 모든 얼굴을 찾아 지웁니다.', auto: true },
+  { t: '차량 번호판', d: '번호판을 자동 인식해 흔적 없이 지웁니다.', auto: true },
+  { t: '명찰 · 사원증', d: '이름과 소속이 보이는 명찰, 목걸이 사원증.' },
+  { t: '서류 개인정보', d: '주민번호, 계좌, 주소 등 서류 위의 민감 정보.' },
+  { t: '전화번호 · 연락처', d: '현수막, 차량 광고, 전단지에 적힌 연락처.' },
+  { t: '택배 운송장', d: '이름과 주소가 그대로 담긴 송장 라벨.' },
+  { t: '문신 · 신체 특징', d: '신원이 드러나는 문신, 흉터, 점.' },
+  { t: '간판 · 상호', d: '위치가 특정되는 가게 간판과 표지판.' },
+  { t: '아파트 동 · 호수', d: '사는 곳이 드러나는 주소 표기.' },
+  { t: '모니터 화면 정보', d: '뒤에 찍힌 화면 속 문서, 메신저, 개인정보.' },
+  { t: '카드 · QR · 바코드', d: '결제 정보로 이어질 수 있는 번호와 코드.' },
+  { t: '그 밖의 전부', d: '칠하기만 하면 무엇이든 같은 방식으로 지워집니다.' },
+]
+
 const USE_CASES = [
   { icon: 'shield', title: 'CCTV·현장 사진', desc: '보고서 첨부 전 얼굴·번호판 자동 지우기' },
   { icon: 'building', title: '건설·안전 보고', desc: '작업자 얼굴을 지우고 배경 복원' },
@@ -105,20 +121,20 @@ export default function Landing({ navigate }) {
           <h2 className="sec-title">Coverage <i>|</i> <small>무엇을 지우나요</small></h2>
           <p className="section-sub">사진 속 개인정보라면 무엇이든 — 찾는 방법만 다릅니다.</p>
         </div>
-        <div className="cover">
-          <div className="cover-card">
-            <div className="tile"><Icon.shield /></div>
-            <span className="cover-k">자동으로 찾아서</span>
-            <h3>얼굴 · 차량 번호판</h3>
-            <p>업로드하는 순간 AI가 찾아 표시합니다. 지울 것만 체크하면 끝.</p>
-          </div>
-          <span className="cover-plus">+</span>
-          <div className="cover-card">
-            <div className="tile"><Icon.brush width="22" height="22" /></div>
-            <span className="cover-k">칠해서 바로</span>
-            <h3>서류 정보 · 명찰 · 그 밖의 전부</h3>
-            <p>자동으로 못 찾는 건 클릭 한 번 또는 붓질 한 번이면 똑같이 지워집니다.</p>
-          </div>
+        <div className="cover-legend">
+          <span className="rtag rtag-auto">자동 인식</span> 업로드하면 AI가 바로 찾아냅니다
+          <span className="rtag">클릭 · 붓질</span> 스마트 클릭이나 붓으로 칠해서 지웁니다
+        </div>
+        <div className="redact-grid">
+          {REDACT_ITEMS.map((r) => (
+            <div className="redact-item" key={r.t}>
+              <div className="redact-head">
+                <h3>{r.t}</h3>
+                <span className={`rtag ${r.auto ? 'rtag-auto' : ''}`}>{r.auto ? '자동 인식' : '클릭 · 붓질'}</span>
+              </div>
+              <p>{r.d}</p>
+            </div>
+          ))}
         </div>
         <p className="cover-note">
           무엇을 지우든 결과는 같습니다 — 지운 자리는 모자이크가 아니라 <strong>원래 배경</strong>으로 채워집니다.
