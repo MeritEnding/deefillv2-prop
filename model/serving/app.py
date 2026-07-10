@@ -11,9 +11,13 @@ import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
-from detect import boxes_to_mask, detect_all
+from detect import boxes_to_mask, detect_all, detect_faces, detect_plates
 from engine import load_engine
+from enhance import restore_faces
+from ocr import detect_text
+from people import segment_people
 from segment import grabcut_at
+from superres import upscale
 
 app = FastAPI(title="DeepFillv2 Inference Service")
 engine = load_engine()
@@ -47,11 +51,22 @@ async def inpaint(image: UploadFile = File(...), mask: UploadFile = File(...)):
     return Response(content=encoded.tobytes(), media_type="image/png")
 
 
+DETECTORS = {"face": detect_faces, "plate": detect_plates, "text": detect_text}
+
+
 @app.post("/detect")
-async def detect(image: UploadFile = File(...)):
-    """사진 속 개인정보 객체(얼굴·번호판)를 탐지해 좌표 목록을 반환한다."""
+async def detect(image: UploadFile = File(...), targets: str = Form("face,plate")):
+    """사진 속 개인정보(얼굴·번호판·텍스트)를 탐지해 좌표 목록을 반환한다.
+
+    targets: 쉼표로 구분한 탐지 대상 (face | plate | text). 기본값은 기존 동작과 같은 face,plate.
+    """
     img = _decode(await image.read(), cv2.IMREAD_COLOR)
-    detections = detect_all(img)
+    detections = []
+    for target in targets.split(","):
+        detector = DETECTORS.get(target.strip())
+        if detector is None:
+            raise HTTPException(status_code=400, detail=f"지원하지 않는 탐지 대상입니다: {target.strip()}")
+        detections += detector(img)
     return {"width": img.shape[1], "height": img.shape[0], "detections": detections}
 
 
@@ -74,6 +89,53 @@ async def redact(image: UploadFile = File(...)):
         content=encoded.tobytes(),
         media_type="image/png",
         headers={"X-Redacted-Count": str(len(detections))},
+    )
+
+
+@app.post("/upscale")
+async def upscale_endpoint(image: UploadFile = File(...), scale: int = Form(2)):
+    """FSRCNN 초해상도로 scale배(2·4) 확대한 PNG를 반환한다."""
+    img = _decode(await image.read(), cv2.IMREAD_COLOR)
+    try:
+        result = upscale(img, scale)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    ok, encoded = cv2.imencode(".png", result)
+    if not ok:
+        raise HTTPException(status_code=500, detail="결과 인코딩에 실패했습니다.")
+    return Response(content=encoded.tobytes(), media_type="image/png")
+
+
+@app.post("/restore-faces")
+async def restore_faces_endpoint(image: UploadFile = File(...)):
+    """사진 속 모든 얼굴을 GFPGAN으로 복원한 PNG를 반환한다. X-Restored-Count 헤더에 얼굴 수."""
+    img = _decode(await image.read(), cv2.IMREAD_COLOR)
+    result, count = restore_faces(img)
+
+    ok, encoded = cv2.imencode(".png", result)
+    if not ok:
+        raise HTTPException(status_code=500, detail="결과 인코딩에 실패했습니다.")
+    return Response(
+        content=encoded.tobytes(),
+        media_type="image/png",
+        headers={"X-Restored-Count": str(count)},
+    )
+
+
+@app.post("/segment-people")
+async def segment_people_endpoint(image: UploadFile = File(...)):
+    """사람 실루엣 마스크 PNG(255=사람)를 반환한다. X-Person-Coverage 헤더에 화면 대비 비율."""
+    img = _decode(await image.read(), cv2.IMREAD_COLOR)
+    mask, coverage = segment_people(img)
+
+    ok, encoded = cv2.imencode(".png", mask)
+    if not ok:
+        raise HTTPException(status_code=500, detail="마스크 인코딩에 실패했습니다.")
+    return Response(
+        content=encoded.tobytes(),
+        media_type="image/png",
+        headers={"X-Person-Coverage": f"{coverage:.4f}"},
     )
 
 

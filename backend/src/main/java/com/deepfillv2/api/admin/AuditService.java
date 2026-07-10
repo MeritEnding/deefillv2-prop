@@ -26,6 +26,7 @@ public class AuditService {
     private final Map<String, AtomicLong> byAction = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> byApiKey = new ConcurrentHashMap<>();
     private final AtomicLong total = new AtomicLong();
+    private final AtomicLong totalElapsedMs = new AtomicLong();
 
     public void record(String source, String action, int detected, long elapsedMs, String status) {
         entries.addFirst(new Entry(Instant.now(), source, action, detected, elapsedMs, status));
@@ -33,7 +34,18 @@ public class AuditService {
             entries.pollLast();
         }
         total.incrementAndGet();
+        totalElapsedMs.addAndGet(elapsedMs);
         byAction.computeIfAbsent(action, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    /** 공개용 요약 — 개별 이력·키 정보 없이 총계만. */
+    public Map<String, Object> publicStats() {
+        long t = total.get();
+        return Map.of(
+                "total", t,
+                "byAction", snapshot(byAction),
+                "avgElapsedMs", t == 0 ? 0 : totalElapsedMs.get() / t
+        );
     }
 
     public long countApiKey(String maskedKey) {

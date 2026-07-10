@@ -61,9 +61,10 @@ public class InferenceClient {
                 .toEntity(byte[].class);
     }
 
-    public String detect(MultipartFile image) throws IOException {
+    public String detect(MultipartFile image, String targets) throws IOException {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("image", asResource(image, "image.png"));
+        parts.add("targets", targets);
 
         return restClient.post()
                 .uri("/detect")
@@ -71,6 +72,43 @@ public class InferenceClient {
                 .body(parts)
                 .retrieve()
                 .body(String.class);
+    }
+
+    public byte[] upscale(MultipartFile image, int scale) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+        parts.add("scale", String.valueOf(scale));
+
+        return restClient.post()
+                .uri("/upscale")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .body(byte[].class);
+    }
+
+    public org.springframework.http.ResponseEntity<byte[]> restoreFaces(MultipartFile image) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+
+        return restClient.post()
+                .uri("/restore-faces")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .toEntity(byte[].class);
+    }
+
+    public org.springframework.http.ResponseEntity<byte[]> segmentPeople(MultipartFile image) throws IOException {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("image", asResource(image, "image.png"));
+
+        return restClient.post()
+                .uri("/segment-people")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(parts)
+                .retrieve()
+                .toEntity(byte[].class);
     }
 
     public byte[] segment(MultipartFile image, double x, double y) throws IOException {

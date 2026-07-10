@@ -1,9 +1,12 @@
 export default function NavBar({ route, navigate }) {
-  const link = (to, label) => (
-    <a className={route === to ? 'on' : ''} href={`#${to}`} onClick={() => navigate(to)}>
-      {label}
-    </a>
-  )
+  const link = (to, label) => {
+    const active = route === to || (to !== '/' && route.startsWith(`${to}/`))
+    return (
+      <a className={active ? 'on' : ''} href={`#${to}`} onClick={() => navigate(to)}>
+        {label}
+      </a>
+    )
+  }
   return (
     <header className="nav">
       <div className="nav-inner">
@@ -15,6 +18,11 @@ export default function NavBar({ route, navigate }) {
           {link('/', '홈')}
           {link('/privacy', '개인정보 지우기')}
           {link('/studio', '스튜디오')}
+          {link('/enhance', '화질 복원')}
+          {link('/cases', '고객 사례')}
+          {link('/tips', '활용 팁')}
+          {link('/community', '커뮤니티')}
+          {link('/notices', '공지')}
         </nav>
         <div className="nav-right">
           <button className="btn btn-dark btn-sm" onClick={() => navigate('/privacy')}>

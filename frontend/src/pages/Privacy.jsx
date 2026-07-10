@@ -1,14 +1,43 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import BeforeAfter from '../components/BeforeAfter.jsx'
 import { Icon } from '../components/icons.jsx'
 import { downloadBlob } from '../lib/image.js'
+import { postForm } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const MASK_MARGIN = 0.25 // 탐지 박스 대비 마스크 타원 여유
 const TYPE_LABEL = { face: '얼굴', plate: '번호판' }
 
+// 항목별 전용 페이지 구성 — kind에 따라 탐지 결과를 필터하고 문구를 바꾼다
+const KINDS = {
+  face: {
+    label: '얼굴',
+    title: '얼굴 지우기',
+    desc: '사진 속 모든 얼굴을 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.',
+    dropSub: '단체 사진 · 현장 사진 · CCTV 캡처 — 얼굴을 자동으로 찾아 표시합니다',
+    sample: '/sample-face.png',
+    beta: false,
+  },
+  plate: {
+    label: '번호판',
+    title: '차량 번호판 지우기',
+    desc: '차량 번호판을 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.',
+    dropSub: '주차장 · 사고 · 거리 사진 — 차량 번호판을 자동으로 찾아 표시합니다',
+    sample: null,
+    beta: true,
+  },
+  text: {
+    label: '텍스트 개인정보',
+    title: '텍스트 개인정보 지우기',
+    desc: '전화번호, 주민등록번호, 계좌·카드번호 같은 숫자 개인정보를 글자째 찾아 지웁니다.',
+    dropSub: '전단지 · 서류 · 차량 광고 — 전화번호·계좌번호 등을 자동으로 찾아 표시합니다',
+    sample: '/sample-text.png',
+    beta: true,
+  },
+}
+
 // 비식별화 워크플로: 업로드 → 자동 탐지 → 항목 선택 → 제거·자연 복원 → 저장
-export default function Privacy({ engine }) {
+export default function Privacy({ engine, kind = 'face' }) {
+  const meta = KINDS[kind]
   const [imageFile, setImageFile] = useState(null)
   const [imageURL, setImageURL] = useState(null)
   const [natural, setNatural] = useState(null)
@@ -28,6 +57,18 @@ export default function Privacy({ engine }) {
   }
 
   const reset = () => { setDets(null); setResult(null); setError(null); setPhase('idle'); setMetrics({}) }
+
+  // 샘플 체험 (#/privacy/face?demo=1) — 번들된 예시 사진으로 흐름을 바로 보여준다
+  const loadSample = async () => {
+    if (!meta.sample) return
+    try {
+      const blob = await (await fetch(meta.sample)).blob()
+      loadFile(new File([blob], 'sample.png', { type: 'image/png' }))
+    } catch { setError('샘플 이미지를 불러오지 못했어요.') }
+  }
+  useEffect(() => {
+    if (window.location.hash.includes('demo=1')) loadSample()
+  }, []) // eslint-disable-line
 
   const loadFile = async (file) => {
     if (!file || !file.type?.startsWith('image/')) return
@@ -50,18 +91,14 @@ export default function Privacy({ engine }) {
     try {
       const form = new FormData()
       form.append('image', file, 'image.png')
-      const res = await fetch(`${API_BASE}/api/detect`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const msg = await res.json().then((d) => d.message).catch(() => null)
-        throw new Error(msg ?? `서버 오류 (${res.status})`)
-      }
+      form.append('targets', kind)
+      const res = await postForm('/api/detect', form)
       const data = await res.json()
       const ms = performance.now() - started
       setMetrics((m) => ({ ...m, detectMs: ms }))
-      const faces = data.detections.filter((d) => d.type === 'face').length
-      const plates = data.detections.filter((d) => d.type === 'plate').length
-      pushLog(`탐지 완료 · 얼굴 ${faces} · 번호판 ${plates} · ${(ms / 1000).toFixed(2)}s (YuNet+Cascade)`)
-      setDets(data.detections.map((d) => ({ ...d, on: true })))
+      const matched = data.detections.filter((d) => d.type === kind)
+      pushLog(`탐지 완료 · ${meta.label} ${matched.length}건 · ${(ms / 1000).toFixed(2)}s`)
+      setDets(matched.map((d) => ({ ...d, on: true })))
       setPhase('ready')
     } catch (e) {
       pushLog(`탐지 실패 · ${e.message}`, 'error')
@@ -87,20 +124,22 @@ export default function Privacy({ engine }) {
       ctx.fillStyle = 'black'
       ctx.fillRect(0, 0, mc.width, mc.height)
       ctx.fillStyle = 'white'
-      for (const { box: [x, y, w, h] } of selected) {
-        ctx.beginPath()
-        ctx.ellipse(x + w / 2, y + h / 2, (w / 2) * (1 + MASK_MARGIN), (h / 2) * (1 + MASK_MARGIN), 0, 0, Math.PI * 2)
-        ctx.fill()
+      for (const { type, box: [x, y, w, h] } of selected) {
+        if (type === 'text') {
+          // 글자는 각지게 — 타원은 획 끝을 남긴다
+          const mx = (w * MASK_MARGIN) / 2, my = (h * MASK_MARGIN) / 2
+          ctx.fillRect(x - mx, y - my, w + mx * 2, h + my * 2)
+        } else {
+          ctx.beginPath()
+          ctx.ellipse(x + w / 2, y + h / 2, (w / 2) * (1 + MASK_MARGIN), (h / 2) * (1 + MASK_MARGIN), 0, 0, Math.PI * 2)
+          ctx.fill()
+        }
       }
       const maskBlob = await new Promise((r) => mc.toBlob(r, 'image/png'))
       const form = new FormData()
       form.append('image', imageFile, 'image.png')
       form.append('mask', maskBlob, 'mask.png')
-      const res = await fetch(`${API_BASE}/api/inpaint`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const msg = await res.json().then((d) => d.message).catch(() => null)
-        throw new Error(msg ?? `서버 오류 (${res.status})`)
-      }
+      const res = await postForm('/api/inpaint', form)
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
       const engineName = res.headers.get('X-Engine')
@@ -127,8 +166,8 @@ export default function Privacy({ engine }) {
         <div className="studio-title">
           <div className="tile tile-sm"><Icon.shield /></div>
           <div>
-            <h2>개인정보 지우기</h2>
-            <p>얼굴, 차량 번호판 같은 개인정보를 자동으로 찾아 지우고, 그 자리는 원래 배경으로 자연스럽게 메웁니다.</p>
+            <h2>{meta.title} {meta.beta && <span className="rtag">베타</span>}</h2>
+            <p>{meta.desc}</p>
           </div>
         </div>
         <span className={`pill ${engine ? 'pill-ok' : 'pill-down'}`}>
@@ -148,7 +187,10 @@ export default function Privacy({ engine }) {
               <input type="file" accept="image/*" hidden onChange={(e) => newImage(e.target.files[0])} />
               <img className="dropzone-mascot" src="/mascot-select.png" alt="" />
               <p className="dropzone-title">사진을 올리면 바로 찾아드려요</p>
-              <p className="dropzone-sub">현장 사진 · CCTV 캡처 · 사고 사진 — 얼굴과 번호판을 자동으로 찾아 표시합니다</p>
+              <p className="dropzone-sub">{meta.dropSub}</p>
+              {meta.sample && (
+                <span className="btn btn-outline btn-sm" onClick={(e) => { e.preventDefault(); loadSample() }}>샘플 사진으로 체험</span>
+              )}
             </label>
           )}
 
@@ -223,12 +265,12 @@ export default function Privacy({ engine }) {
           ) : (
             <>
               <div className="tool-group">
-                <span className="tool-label">찾아낸 개인정보 {dets ? `· ${dets.length}건` : ''}</span>
+                <span className="tool-label">찾아낸 {meta.label} {dets ? `· ${dets.length}건` : ''}</span>
                 {!dets && <p className="result-desc">사진을 올리면 자동으로 찾아드립니다.</p>}
                 {dets && !dets.length && (
                   <p className="result-desc">
-                    자동으로 찾은 항목이 없어요. 서류 속 번호나 명찰처럼 자동으로 못 찾는 정보는
-                    <a href="#/studio"> 스튜디오</a>에서 칠해서 지울 수 있어요.
+                    자동으로 찾은 {meta.label}이(가) 없어요. 다른 개인정보는
+                    <a href="#/privacy"> 항목 선택</a>이나 <a href="#/studio">스튜디오</a>에서 지울 수 있어요.
                   </p>
                 )}
                 {dets && dets.length > 0 && (
@@ -237,7 +279,7 @@ export default function Privacy({ engine }) {
                       <li key={i}>
                         <label>
                           <input type="checkbox" checked={d.on} onChange={() => toggle(i)} />
-                          <span>{TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
+                          <span>{d.label ?? TYPE_LABEL[d.type] ?? d.type} {i + 1}</span>
                           <span className="pv-score" title={`신뢰도 ${Math.round(d.score * 100)}%`}>
                             <i style={{ width: `${Math.round(d.score * 100)}%` }} />
                           </span>

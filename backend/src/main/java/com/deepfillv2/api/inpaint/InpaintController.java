@@ -32,6 +32,12 @@ public class InpaintController {
         this.auditService = auditService;
     }
 
+    /** 인증 없는 공개 요약 통계 (통계 페이지용) — 총계만 노출, 개별 이력·키 없음. */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats() {
+        return ResponseEntity.ok(auditService.publicStats());
+    }
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         try {
@@ -40,6 +46,25 @@ public class InpaintController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("status", "down", "detail", "추론 서비스에 연결할 수 없습니다."));
         }
+    }
+
+    @PostMapping(value = "/upscale", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> upscale(@RequestPart("image") MultipartFile image,
+                                          @RequestParam(value = "scale", defaultValue = "2") int scale) throws IOException {
+        validateImage(image, "원본 이미지");
+        if (scale != 2 && scale != 4) {
+            throw new InvalidUploadException("배율은 2 또는 4만 지원합니다.");
+        }
+
+        long started = System.currentTimeMillis();
+        byte[] result = inferenceClient.upscale(image, scale);
+        long elapsed = System.currentTimeMillis() - started;
+        auditService.record("web", "upscale", 0, elapsed, "ok");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Elapsed-Ms", String.valueOf(elapsed))
+                .body(result);
     }
 
     @PostMapping(value = "/inpaint", produces = MediaType.IMAGE_PNG_VALUE)
@@ -62,9 +87,43 @@ public class InpaintController {
     }
 
     @PostMapping(value = "/detect", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> detect(@RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<String> detect(@RequestPart("image") MultipartFile image,
+                                         @RequestParam(value = "targets", defaultValue = "face,plate") String targets) throws IOException {
         validateImage(image, "원본 이미지");
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image));
+        if (!targets.matches("[a-z]+(,[a-z]+)*")) {
+            throw new InvalidUploadException("targets 형식이 올바르지 않습니다.");
+        }
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image, targets));
+    }
+
+    @PostMapping(value = "/restore", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> restore(@RequestPart("image") MultipartFile image) throws IOException {
+        validateImage(image, "원본 이미지");
+
+        long started = System.currentTimeMillis();
+        ResponseEntity<byte[]> result = inferenceClient.restoreFaces(image);
+        long elapsed = System.currentTimeMillis() - started;
+
+        String restoredCount = result.getHeaders().getFirst("X-Restored-Count");
+        int restored = restoredCount != null ? Integer.parseInt(restoredCount) : 0;
+        auditService.record("web", "restore", restored, elapsed, "ok");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Restored-Count", String.valueOf(restored))
+                .header("X-Elapsed-Ms", String.valueOf(elapsed))
+                .body(result.getBody());
+    }
+
+    @PostMapping(value = "/segment-people", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> segmentPeople(@RequestPart("image") MultipartFile image) throws IOException {
+        validateImage(image, "원본 이미지");
+        ResponseEntity<byte[]> result = inferenceClient.segmentPeople(image);
+        String coverage = result.getHeaders().getFirst("X-Person-Coverage");
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Person-Coverage", coverage != null ? coverage : "0")
+                .body(result.getBody());
     }
 
     @PostMapping(value = "/segment", produces = MediaType.IMAGE_PNG_VALUE)
