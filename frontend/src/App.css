@@ -34,6 +34,20 @@
 .pill-ok { background: rgba(5, 150, 105, 0.07); border-color: rgba(5, 150, 105, 0.28); color: var(--success); }
 .pill-down { background: rgba(225, 29, 72, 0.06); border-color: rgba(225, 29, 72, 0.28); color: var(--danger); }
 
+/* 모델(버전) 선택기 */
+.model-picker { display: inline-flex; align-items: center; gap: 0.5rem; }
+.model-picker-cap { font-size: 0.72rem; font-weight: 700; color: var(--text-faint); letter-spacing: 0.02em; }
+.model-picker-select {
+  font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--text);
+  padding: 0.4rem 2rem 0.4rem 0.75rem; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat; background-position: right 0.7rem center;
+}
+.model-picker-select:hover { border-color: var(--blue); }
+.model-picker-select:focus-visible { outline: 2px solid var(--blue-tint-2); outline-offset: 1px; border-color: var(--blue); }
+
 .error { color: var(--danger); font-size: 0.87rem; margin: 0.1rem 0; }
 
 .tile {

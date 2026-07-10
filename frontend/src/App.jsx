@@ -26,7 +26,8 @@ function parseHash() {
 
 export default function App() {
   const [{ path, mode }, setRoute] = useState(parseHash())
-  const [engine, setEngine] = useState(null)
+  const [engine, setEngine] = useState(null) // 현재 선택된 모델 id
+  const [engines, setEngines] = useState([]) // 사용 가능 모델 카탈로그
 
   useEffect(() => {
     const on = () => setRoute(parseHash())
@@ -35,8 +36,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    getJSON('/api/health').then((d) => setEngine(d.engine ?? null)).catch(() => setEngine(null))
+    getJSON('/api/engines').then((d) => {
+      const list = d.engines ?? []
+      setEngines(list)
+      const saved = localStorage.getItem('jium-engine')
+      const usable = list.some((e) => e.id === saved && e.available)
+      setEngine(usable ? saved : (d.default ?? null))
+    }).catch(() => { setEngines([]); setEngine(null) })
   }, [])
+
+  // 모델 선택을 기억한다(새로고침·페이지 이동에도 유지).
+  const chooseEngine = (id) => { setEngine(id); localStorage.setItem('jium-engine', id) }
 
   const navigate = (to) => { window.location.hash = to; window.scrollTo({ top: 0 }) }
   const modeId = MODE_MAP[mode] ? mode : 'object'
@@ -65,15 +75,15 @@ export default function App() {
         </ErrorBoundary>
       ) : path === '/privacy/person' ? (
         <ErrorBoundary onReset={() => navigate('/privacy/person')}>
-          <PersonErase engine={engine} />
+          <PersonErase engine={engine} engines={engines} setEngine={chooseEngine} />
         </ErrorBoundary>
       ) : path === '/privacy/face' || path === '/privacy/plate' || path === '/privacy/text' ? (
         <ErrorBoundary onReset={() => navigate(path)}>
-          <Privacy key={path} engine={engine} kind={path.split('/')[2]} />
+          <Privacy key={path} engine={engine} engines={engines} setEngine={chooseEngine} kind={path.split('/')[2]} />
         </ErrorBoundary>
       ) : path === '/studio' ? (
         <ErrorBoundary onReset={() => navigate('/studio')}>
-          <Studio modeId={modeId} setModeId={setModeId} engine={engine} />
+          <Studio modeId={modeId} setModeId={setModeId} engine={engine} engines={engines} setEngine={chooseEngine} />
         </ErrorBoundary>
       ) : (
         <Landing navigate={navigate} />
