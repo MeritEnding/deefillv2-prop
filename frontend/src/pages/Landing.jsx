@@ -233,31 +233,6 @@ export default function Landing({ navigate }) {
         </div>
       </section>
 
-      {/* 기업 연동 API */}
-      <section className="section">
-        <div className="api-split">
-          <div>
-            <h2 className="sec-title">For business <i>|</i> <small>연동 API</small></h2>
-            <p className="section-sub">
-              웹 화면 없이도 씁니다. 업로드 한 번이면 탐지부터 복원까지 —
-              사내 시스템·업무 자동화에 REST API로 바로 붙이세요.
-              키 인증과 사용량 집계를 지원합니다.
-            </p>
-            <ul className="api-points">
-              <li>원콜 처리 — 탐지 → 제거 → 자연 복원</li>
-              <li><code>X-API-Key</code> 인증 · 키별 사용량 조회(<code>/api/v1/usage</code>)</li>
-              <li>처리 결과 헤더 — <code>X-Redacted-Count</code></li>
-            </ul>
-          </div>
-          <pre className="api-code">{`curl -X POST http://localhost:8080/api/v1/redact \\
-  -H "X-API-Key: <발급받은 키>" \\
-  -F "image=@site-photo.jpg" \\
-  -o redacted.png
-
-# X-Redacted-Count: 3  (제거된 개인정보 수)`}</pre>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="cta-band">
         <div className="cta-band-inner">
