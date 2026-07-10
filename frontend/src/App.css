@@ -327,7 +327,7 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18p
 @media (max-width: 900px) { .admin-grid { grid-template-columns: 1fr; } }
 
 /* ===== 개인정보 지우기 허브 ===== */
-.pvhub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.pvhub-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; }
 .pvhub-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; text-align: left; border: 1px solid var(--border); background: #fff; padding: 1.5rem 1.5rem 1.3rem; font: inherit; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
 .pvhub-card:hover { border-color: var(--blue); transform: translateY(-2px); }
 .pvhub-head { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 0.3rem; }

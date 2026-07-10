@@ -68,9 +68,13 @@ public class InpaintController {
     }
 
     @PostMapping(value = "/detect", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> detect(@RequestPart("image") MultipartFile image) throws IOException {
+    public ResponseEntity<String> detect(@RequestPart("image") MultipartFile image,
+                                         @RequestParam(value = "targets", defaultValue = "face,plate") String targets) throws IOException {
         validateImage(image, "원본 이미지");
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image));
+        if (!targets.matches("[a-z]+(,[a-z]+)*")) {
+            throw new InvalidUploadException("targets 형식이 올바르지 않습니다.");
+        }
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image, targets));
     }
 
     @PostMapping(value = "/segment", produces = MediaType.IMAGE_PNG_VALUE)
