@@ -8,6 +8,7 @@ import Community from './pages/Community.jsx'
 import Landing from './pages/Landing.jsx'
 import Notices from './pages/Notices.jsx'
 import Privacy from './pages/Privacy.jsx'
+import PersonErase from './pages/PersonErase.jsx'
 import PrivacyHub from './pages/PrivacyHub.jsx'
 import Stats from './pages/Stats.jsx'
 import Studio from './pages/Studio.jsx'
@@ -57,6 +58,10 @@ export default function App() {
         <Stats />
       ) : path === '/privacy' ? (
         <PrivacyHub navigate={navigate} />
+      ) : path === '/privacy/person' ? (
+        <ErrorBoundary onReset={() => navigate('/privacy/person')}>
+          <PersonErase engine={engine} />
+        </ErrorBoundary>
       ) : path === '/privacy/face' || path === '/privacy/plate' || path === '/privacy/text' ? (
         <ErrorBoundary onReset={() => navigate(path)}>
           <Privacy key={path} engine={engine} kind={path.split('/')[2]} />
