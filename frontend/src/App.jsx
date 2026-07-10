@@ -8,6 +8,7 @@ import Community from './pages/Community.jsx'
 import Landing from './pages/Landing.jsx'
 import Notices from './pages/Notices.jsx'
 import Privacy from './pages/Privacy.jsx'
+import PrivacyHub from './pages/PrivacyHub.jsx'
 import Stats from './pages/Stats.jsx'
 import Studio from './pages/Studio.jsx'
 import Tips from './pages/Tips.jsx'
@@ -56,8 +57,10 @@ export default function App() {
       ) : path === '/stats' ? (
         <Stats />
       ) : path === '/privacy' ? (
-        <ErrorBoundary onReset={() => navigate('/privacy')}>
-          <Privacy engine={engine} />
+        <PrivacyHub navigate={navigate} />
+      ) : path === '/privacy/face' || path === '/privacy/plate' ? (
+        <ErrorBoundary onReset={() => navigate(path)}>
+          <Privacy key={path} engine={engine} kind={path.split('/')[2]} />
         </ErrorBoundary>
       ) : path === '/studio' ? (
         <ErrorBoundary onReset={() => navigate('/studio')}>
