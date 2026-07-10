@@ -14,7 +14,7 @@ const ITEMS = [
   {
     to: '/privacy/plate',
     icon: 'car',
-    tag: '자동 인식 · 베타',
+    tag: '자동 인식',
     auto: true,
     title: '차량 번호판 지우기',
     desc: '주차장·사고·거리 사진 속 번호판을 자동으로 찾아 흔적 없이 지웁니다.',
