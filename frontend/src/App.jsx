@@ -3,9 +3,14 @@ import './App.css'
 import NavBar from './components/NavBar.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Admin from './pages/Admin.jsx'
+import Cases from './pages/Cases.jsx'
+import Community from './pages/Community.jsx'
 import Landing from './pages/Landing.jsx'
+import Notices from './pages/Notices.jsx'
 import Privacy from './pages/Privacy.jsx'
+import Stats from './pages/Stats.jsx'
 import Studio from './pages/Studio.jsx'
+import Tips from './pages/Tips.jsx'
 import { MODE_MAP } from './lib/modes.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
@@ -40,6 +45,16 @@ export default function App() {
       <NavBar route={path} navigate={navigate} />
       {path === '/admin' ? (
         <Admin />
+      ) : path === '/notices' ? (
+        <Notices />
+      ) : path === '/tips' ? (
+        <Tips />
+      ) : path === '/cases' ? (
+        <Cases navigate={navigate} />
+      ) : path === '/community' ? (
+        <Community />
+      ) : path === '/stats' ? (
+        <Stats />
       ) : path === '/privacy' ? (
         <ErrorBoundary onReset={() => navigate('/privacy')}>
           <Privacy engine={engine} />

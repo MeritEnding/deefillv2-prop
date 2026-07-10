@@ -15,6 +15,10 @@ export default function NavBar({ route, navigate }) {
           {link('/', '홈')}
           {link('/privacy', '개인정보 지우기')}
           {link('/studio', '스튜디오')}
+          {link('/cases', '고객 사례')}
+          {link('/tips', '활용 팁')}
+          {link('/community', '커뮤니티')}
+          {link('/notices', '공지')}
         </nav>
         <div className="nav-right">
           <button className="btn btn-dark btn-sm" onClick={() => navigate('/privacy')}>

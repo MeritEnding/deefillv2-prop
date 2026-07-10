@@ -288,6 +288,12 @@ export default function Landing({ navigate }) {
               <p>황지윤 · 이정훈 (2024)</p>
             </div>
             <div>
+              <h4>Service</h4>
+              <p><a href="#/notices">공지사항</a> · <a href="#/tips">활용 팁</a></p>
+              <p><a href="#/cases">고객 사례</a> · <a href="#/community">커뮤니티</a></p>
+              <p><a href="#/stats">서비스 통계</a></p>
+            </div>
+            <div>
               <h4>Operations</h4>
               <p><a href="#/admin">관리자 콘솔</a></p>
               <p>감사 로그 · 사용량 통계</p>

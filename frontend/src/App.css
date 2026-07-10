@@ -326,6 +326,47 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18p
 .admin-empty { font-size: 0.87rem; color: var(--text-faint); }
 @media (max-width: 900px) { .admin-grid { grid-template-columns: 1fr; } }
 
+/* ===== 안내 페이지 공통 (공지·팁·사례·커뮤니티·통계) ===== */
+.page-narrow { max-width: 860px; margin: 0 auto; }
+.stats-h { font-family: var(--serif); font-weight: 500; font-size: 1.05rem; margin: 2.2rem 0 0.9rem; }
+.astat-sub { font-size: 0.78rem; color: var(--text-faint); margin-top: 0.3rem; }
+.stats-refresh { margin-top: -0.4rem; }
+
+.notice-list { list-style: none; border-top: 1px solid var(--border-strong); }
+.notice-list li { border-bottom: 1px solid var(--border); }
+.notice-row { display: flex; align-items: center; gap: 0.9rem; width: 100%; padding: 0.95rem 0.3rem; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
+.notice-row strong { flex: 1; font-size: 0.95rem; font-weight: 600; }
+.notice-row time { font-size: 0.8rem; color: var(--text-faint); white-space: nowrap; }
+.notice-list li.open .notice-row strong { text-decoration: underline; text-underline-offset: 5px; }
+.notice-body { padding: 0 0.3rem 1.1rem; font-size: 0.9rem; line-height: 1.7; color: var(--text-dim); }
+
+.tips-grid, .domain-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+.tip-card { background: #fff; padding: 1.3rem 1.4rem; }
+.tip-card h3 { font-size: 0.98rem; margin: 0.55rem 0 0.35rem; }
+.tip-card p { font-size: 0.87rem; line-height: 1.65; color: var(--text-dim); }
+
+.review-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; }
+.review-card { border: 1px solid var(--border); background: #fff; padding: 1.3rem 1.4rem; }
+.review-card blockquote { font-size: 0.92rem; line-height: 1.7; color: var(--text-dim); margin-bottom: 0.9rem; }
+.review-card figcaption { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.review-card figcaption strong { font-size: 0.86rem; }
+
+.comm-form { display: flex; flex-direction: column; gap: 0.6rem; border: 1px solid var(--border); background: #fff; padding: 1.1rem 1.2rem; margin-bottom: 1.6rem; align-items: flex-start; }
+.comm-form-row { display: flex; gap: 0.6rem; width: 100%; }
+.comm-form input, .comm-form textarea { padding: 0.55rem 0.8rem; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; font-size: 0.9rem; outline: none; resize: vertical; }
+.comm-form input:focus, .comm-form textarea:focus { border-color: var(--blue); }
+.comm-form-row input:first-child { width: 150px; }
+.comm-form-row input:last-child { flex: 1; }
+.comm-form textarea { width: 100%; }
+.comm-like { background: none; border: 1px solid var(--border-strong); border-radius: 999px; padding: 0.25rem 0.8rem; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); cursor: pointer; margin-top: 0.6rem; }
+.comm-like:hover { border-color: var(--blue); color: var(--blue); }
+
+@media (max-width: 700px) {
+  .tips-grid, .domain-grid, .review-grid { grid-template-columns: 1fr; }
+  .comm-form-row { flex-direction: column; }
+  .comm-form-row input:first-child { width: 100%; }
+}
+
 /* ===== 크래시 폴백 ===== */
 .crash { text-align: center; padding: 4rem 2rem; }
 .crash-mascot { width: 110px; height: auto; }
