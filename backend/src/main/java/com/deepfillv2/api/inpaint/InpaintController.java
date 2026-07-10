@@ -77,6 +77,17 @@ public class InpaintController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.detect(image, targets));
     }
 
+    @PostMapping(value = "/segment-people", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> segmentPeople(@RequestPart("image") MultipartFile image) throws IOException {
+        validateImage(image, "원본 이미지");
+        ResponseEntity<byte[]> result = inferenceClient.segmentPeople(image);
+        String coverage = result.getHeaders().getFirst("X-Person-Coverage");
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header("X-Person-Coverage", coverage != null ? coverage : "0")
+                .body(result.getBody());
+    }
+
     @PostMapping(value = "/segment", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> segment(@RequestPart("image") MultipartFile image,
                                           @RequestParam("x") double x,

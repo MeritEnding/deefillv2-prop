@@ -21,6 +21,15 @@ const ITEMS = [
     cta: '번호판 지우러 가기',
   },
   {
+    to: '/privacy/person',
+    icon: 'person',
+    tag: '자동 인식',
+    auto: true,
+    title: '사람 전체 지우기',
+    desc: '행인, 지나가는 사람의 실루엣을 통째로 잡아 지우고 배경으로 복원합니다.',
+    cta: '사람 지우러 가기',
+  },
+  {
     to: '/privacy/text',
     icon: 'text',
     tag: '자동 인식 · 베타',
