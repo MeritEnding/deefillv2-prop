@@ -13,8 +13,7 @@ import Stats from './pages/Stats.jsx'
 import Studio from './pages/Studio.jsx'
 import Tips from './pages/Tips.jsx'
 import { MODE_MAP } from './lib/modes.js'
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
+import { getJSON } from './lib/api.js'
 
 function parseHash() {
   const raw = window.location.hash.replace(/^#/, '') || '/'
@@ -34,7 +33,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/health`).then((r) => r.json()).then((d) => setEngine(d.engine ?? null)).catch(() => setEngine(null))
+    getJSON('/api/health').then((d) => setEngine(d.engine ?? null)).catch(() => setEngine(null))
   }, [])
 
   const navigate = (to) => { window.location.hash = to; window.scrollTo({ top: 0 }) }

@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Icon } from '../components/icons.jsx'
 import { downloadBlob } from '../lib/image.js'
+import { postForm } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const MAX_DISPLAY = 640
 
 // 일괄 지우기: 첫 사진에 그린 마스크를 모든 사진에 적용해 순차 인페인팅.
@@ -104,11 +104,7 @@ export default function BatchPanel({ brushDefault = 26 }) {
         const form = new FormData()
         form.append('image', files[i], files[i].name)
         form.append('mask', maskBlob, 'mask.png') // 크기가 달라도 서버가 리사이즈해 적용
-        const res = await fetch(`${API_BASE}/api/inpaint`, { method: 'POST', body: form })
-        if (!res.ok) {
-          const msg = await res.json().then((d) => d.message).catch(() => null)
-          throw new Error(msg ?? `서버 오류 (${res.status})`)
-        }
+        const res = await postForm('/api/inpaint', form)
         const blob = await res.blob()
         out.push({ name: files[i].name, blob, url: URL.createObjectURL(blob) })
       } catch (e) {

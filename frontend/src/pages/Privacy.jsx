@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import BeforeAfter from '../components/BeforeAfter.jsx'
 import { Icon } from '../components/icons.jsx'
 import { downloadBlob } from '../lib/image.js'
+import { postForm } from '../lib/api.js'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 const MASK_MARGIN = 0.25 // 탐지 박스 대비 마스크 타원 여유
 const TYPE_LABEL = { face: '얼굴', plate: '번호판' }
 
@@ -83,11 +83,7 @@ export default function Privacy({ engine, kind = 'face' }) {
     try {
       const form = new FormData()
       form.append('image', file, 'image.png')
-      const res = await fetch(`${API_BASE}/api/detect`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const msg = await res.json().then((d) => d.message).catch(() => null)
-        throw new Error(msg ?? `서버 오류 (${res.status})`)
-      }
+      const res = await postForm('/api/detect', form)
       const data = await res.json()
       const ms = performance.now() - started
       setMetrics((m) => ({ ...m, detectMs: ms }))
@@ -128,11 +124,7 @@ export default function Privacy({ engine, kind = 'face' }) {
       const form = new FormData()
       form.append('image', imageFile, 'image.png')
       form.append('mask', maskBlob, 'mask.png')
-      const res = await fetch(`${API_BASE}/api/inpaint`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const msg = await res.json().then((d) => d.message).catch(() => null)
-        throw new Error(msg ?? `서버 오류 (${res.status})`)
-      }
+      const res = await postForm('/api/inpaint', form)
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
       const engineName = res.headers.get('X-Engine')
