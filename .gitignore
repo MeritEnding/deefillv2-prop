@@ -17,9 +17,11 @@ training_checkpoints/
 *.ckpt
 *.h5
 *.pt
+*.pth
 big-lama.pt
 gfpgan_1.4.onnx
 plate_yolo11s.onnx
+states_tf_places2.pth
 
 # IDE / OS
 .idea/

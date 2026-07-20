@@ -5,6 +5,7 @@ import { Icon } from '../components/icons.jsx'
 import { MODES, MODE_MAP } from '../lib/modes.js'
 import { copyBlobToClipboard, downloadBlob } from '../lib/image.js'
 import { postForm } from '../lib/api.js'
+import ModelPicker from '../components/ModelPicker.jsx'
 
 const MAX_DISPLAY = 640
 const SAMPLES = ['/demo-before.png', '/sample-street.png']
@@ -27,7 +28,7 @@ function stroke(ctx, points, scale, color, size) {
   ctx.stroke()
 }
 
-export default function Studio({ modeId, setModeId, engine, onError }) {
+export default function Studio({ modeId, setModeId, engine, engines, setEngine, onError }) {
   const mode = MODE_MAP[modeId] ?? MODES[0]
   const isOutpaint = mode.special === 'outpaint'
   const isBatch = mode.special === 'batch'
@@ -234,6 +235,7 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
     const form = new FormData()
     form.append('image', imageBlob, 'image.png')
     form.append('mask', maskBlob, 'mask.png')
+    if (engine) form.append('engine', engine)
     const res = await postForm('/api/inpaint', form)
     const blob = await res.blob()
     const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
@@ -310,9 +312,9 @@ export default function Studio({ modeId, setModeId, engine, onError }) {
             <p>{mode.hint}</p>
           </div>
         </div>
-        <span className={`pill ${engine ? 'pill-ok' : 'pill-down'}`}>
-          {engine ? `엔진: ${engine}` : '추론 서버 연결 안 됨'}
-        </span>
+        {engines?.length
+          ? <ModelPicker engines={engines} value={engine} onChange={setEngine} />
+          : <span className="pill pill-down">추론 서버 연결 안 됨</span>}
       </div>
 
       {isBatch ? <BatchPanel brushDefault={mode.brush} /> : (

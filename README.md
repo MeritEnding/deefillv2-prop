@@ -63,8 +63,17 @@ pip install -r requirements.txt                  # 최초 1회
 uvicorn app:app --port 8000
 ```
 
-학습 체크포인트(`training_checkpoints/`)가 있으면 DeepFillv2 모델로 추론하고,
-없으면 OpenCV Telea 인페인팅으로 폴백해 데모 흐름을 확인할 수 있습니다.
+인페인팅 모델은 여러 개를 지원하며, 화면 우측 상단 **모델 선택기**에서 버전을 골라 쓸 수 있습니다.
+
+| 모델 | 설명 |
+|------|------|
+| **LaMa** (기본) | 대형 마스크·복잡한 배경에 강한 최상 품질 (`big-lama.pt` 필요) |
+| **DeepFillv2 · PyTorch** | gated conv + contextual attention 기반 실제 DeepFillv2. 최초 사용 시 가중치(약 40MB) 자동 다운로드 |
+| **DeepFillv2 · 연구모델(TF)** | 프로젝트 초기에 직접 학습한 GeneratorMultiColumn 체크포인트 (`training_checkpoints/`가 있을 때 활성화) |
+| **OpenCV Telea** | 딥러닝 없이 항상 동작하는 고전 폴백 |
+
+기본 모델은 환경변수 `INPAINT_ENGINE`(예: `lama`, `deepfill`, `telea`)로 바꿀 수 있고,
+사용 가능한 모델이 없으면 자동으로 Telea 폴백으로 동작합니다.
 
 **2. 백엔드 (Spring Boot, :8080)**
 

@@ -88,6 +88,7 @@ export default function PersonErase({ engine }) {
       const form = new FormData()
       form.append('image', imageFile, 'image.png')
       form.append('mask', maskBlob, 'mask.png')
+      if (engine) form.append('engine', engine)
       const res = await postForm('/api/inpaint', form)
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null

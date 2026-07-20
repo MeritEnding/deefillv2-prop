@@ -3,6 +3,7 @@ import BeforeAfter from '../components/BeforeAfter.jsx'
 import { Icon } from '../components/icons.jsx'
 import { downloadBlob } from '../lib/image.js'
 import { postForm } from '../lib/api.js'
+import ModelPicker from '../components/ModelPicker.jsx'
 
 const MASK_MARGIN = 0.25 // 탐지 박스 대비 마스크 타원 여유
 const TYPE_LABEL = { face: '얼굴', plate: '번호판' }
@@ -36,7 +37,7 @@ const KINDS = {
 }
 
 // 비식별화 워크플로: 업로드 → 자동 탐지 → 항목 선택 → 제거·자연 복원 → 저장
-export default function Privacy({ engine, kind = 'face' }) {
+export default function Privacy({ engine, engines, setEngine, kind = 'face' }) {
   const meta = KINDS[kind]
   const [imageFile, setImageFile] = useState(null)
   const [imageURL, setImageURL] = useState(null)
@@ -129,6 +130,7 @@ export default function Privacy({ engine, kind = 'face' }) {
       const form = new FormData()
       form.append('image', imageFile, 'image.png')
       form.append('mask', maskBlob, 'mask.png')
+      if (engine) form.append('engine', engine)
       const res = await postForm('/api/inpaint', form)
       const blob = await res.blob()
       const elapsed = Number(res.headers.get('X-Elapsed-Ms')) || null
@@ -175,9 +177,9 @@ export default function Privacy({ engine, kind = 'face' }) {
             <p>{meta.desc}</p>
           </div>
         </div>
-        <span className={`pill ${engine ? 'pill-ok' : 'pill-down'}`}>
-          {engine ? `엔진: ${engine}` : '추론 서버 연결 안 됨'}
-        </span>
+        {engines?.length
+          ? <ModelPicker engines={engines} value={engine} onChange={setEngine} />
+          : <span className="pill pill-down">추론 서버 연결 안 됨</span>}
       </div>
 
       <div className="studio-grid">
