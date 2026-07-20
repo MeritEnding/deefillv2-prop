@@ -1,32 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import BeforeAfter from '../components/BeforeAfter.jsx'
 import BatchPanel from './BatchPanel.jsx'
 import { Icon } from '../components/icons.jsx'
+import ModelPicker from '../components/ModelPicker.jsx'
+import StudioStage from '../components/StudioStage.jsx'
+import StudioToolbar from '../components/StudioToolbar.jsx'
+import UploadDropzone from '../components/UploadDropzone.jsx'
 import { MODES, MODE_MAP } from '../lib/modes.js'
 import { copyBlobToClipboard, downloadBlob } from '../lib/image.js'
+import { bitmapToMaskAndTint, renderStrokes } from '../lib/maskCanvas.js'
 import { postForm } from '../lib/api.js'
-import ModelPicker from '../components/ModelPicker.jsx'
 
 const MAX_DISPLAY = 640
 const SAMPLES = ['/demo-before.png', '/sample-street.png']
-
-function stroke(ctx, points, scale, color, size) {
-  ctx.strokeStyle = color
-  ctx.fillStyle = color
-  ctx.lineWidth = size
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  if (points.length === 1) {
-    ctx.beginPath()
-    ctx.arc(points[0].x * scale, points[0].y * scale, Math.max(0.5, size / 2), 0, Math.PI * 2)
-    ctx.fill()
-    return
-  }
-  ctx.beginPath()
-  ctx.moveTo(points[0].x * scale, points[0].y * scale)
-  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x * scale, points[i].y * scale)
-  ctx.stroke()
-}
+const OUTPAINT_EDGE_BLUR = 8 // 가장자리 픽셀을 늘려 채울 때 흐림 정도
 
 export default function Studio({ modeId, setModeId, engine, engines, setEngine, onError }) {
   const mode = MODE_MAP[modeId] ?? MODES[0]
@@ -59,40 +45,13 @@ export default function Studio({ modeId, setModeId, engine, engines, setEngine, 
   if (!overlayRef.current) overlayRef.current = document.createElement('canvas')
 
   const renderAll = useCallback((list) => {
-    const disp = dispRef.current
-    const mask = maskRef.current
-    const img = imgRef.current
-    if (!disp || !mask || !img) return
-    const overlay = overlayRef.current
-    overlay.width = disp.width
-    overlay.height = disp.height
-    const octx = overlay.getContext('2d')
-    const mctx = mask.getContext('2d')
-    mctx.globalCompositeOperation = 'source-over'
-    mctx.fillStyle = 'black'
-    mctx.fillRect(0, 0, mask.width, mask.height)
-    const scale = mask.width / disp.width
-    for (const s of list || []) {
-      if (!s) continue
-      if (s.mode === 'auto') {
-        // 스마트 클릭 결과: 원본 해상도 마스크 + 파란 틴트 오버레이
-        octx.globalCompositeOperation = 'source-over'
-        octx.drawImage(s.tint, 0, 0, overlay.width, overlay.height)
-        mctx.globalCompositeOperation = 'lighten'
-        mctx.drawImage(s.m, 0, 0, mask.width, mask.height)
-        mctx.globalCompositeOperation = 'source-over'
-        continue
-      }
-      if (!s.points || !s.points.length) continue
-      octx.globalCompositeOperation = s.mode === 'erase' ? 'destination-out' : 'source-over'
-      stroke(octx, s.points, 1, 'rgba(37,99,235,0.5)', s.size)
-      mctx.globalCompositeOperation = 'source-over'
-      stroke(mctx, s.points, scale, s.mode === 'erase' ? 'black' : 'white', s.size * scale)
-    }
-    const dctx = disp.getContext('2d')
-    dctx.clearRect(0, 0, disp.width, disp.height)
-    dctx.drawImage(img, 0, 0, disp.width, disp.height)
-    dctx.drawImage(overlay, 0, 0)
+    renderStrokes({
+      display: dispRef.current,
+      mask: maskRef.current,
+      overlay: overlayRef.current,
+      image: imgRef.current,
+      strokes: list,
+    })
   }, [])
 
   useEffect(() => { renderAll(strokes) }, [strokes, renderAll])
@@ -209,24 +168,9 @@ export default function Studio({ modeId, setModeId, engine, engines, setEngine, 
       form.append('x', nx)
       form.append('y', ny)
       const res = await postForm('/api/segment', form)
-      const bmp = await createImageBitmap(await res.blob())
-      const m = document.createElement('canvas')
-      m.width = bmp.width; m.height = bmp.height
-      const mx = m.getContext('2d')
-      mx.drawImage(bmp, 0, 0)
-      // 흰색(객체) → 반투명 파랑, 검정 → 투명 틴트 생성
-      const t = document.createElement('canvas')
-      t.width = bmp.width; t.height = bmp.height
-      const tx = t.getContext('2d')
-      const src = mx.getImageData(0, 0, m.width, m.height)
-      const out = tx.createImageData(m.width, m.height)
-      for (let i = 0; i < src.data.length; i += 4) {
-        if (src.data[i] > 127) {
-          out.data[i] = 37; out.data[i + 1] = 99; out.data[i + 2] = 235; out.data[i + 3] = 128
-        }
-      }
-      tx.putImageData(out, 0, 0)
-      setStrokes((prev) => [...prev, { mode: 'auto', m, tint: t }])
+      const bitmap = await createImageBitmap(await res.blob())
+      const { m, tint } = bitmapToMaskAndTint(bitmap)
+      setStrokes((prev) => [...prev, { mode: 'auto', m, tint }])
       setRedo([])
     } catch (e) { setError(e.message ?? '영역 선택에 실패했어요.') } finally { setSmartBusy(false) }
   }
@@ -265,7 +209,7 @@ export default function Studio({ modeId, setModeId, engine, engines, setEngine, 
       const ictx = ic.getContext('2d')
       // 가장자리 픽셀을 늘려 채운 뒤 원본을 얹음 (LaMa가 마스크 영역만 재생성)
       ictx.drawImage(imgRef.current, 0, 0, natural.w, natural.h, 0, 0, W, H)
-      ictx.filter = 'blur(8px)'; ictx.drawImage(ic, 0, 0); ictx.filter = 'none'
+      ictx.filter = `blur(${OUTPAINT_EDGE_BLUR}px)`; ictx.drawImage(ic, 0, 0); ictx.filter = 'none'
       ictx.drawImage(imgRef.current, px, py, natural.w, natural.h)
       const mc = document.createElement('canvas'); mc.width = W; mc.height = H
       const mctx = mc.getContext('2d')
@@ -326,146 +270,60 @@ export default function Studio({ modeId, setModeId, engine, engines, setEngine, 
           onDrop={(e) => { e.preventDefault(); setDragOver(false); loadFile(e.dataTransfer.files[0]) }}
         >
           {!imageURL && (
-            <label className="dropzone">
-              <input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} />
-              <img className="dropzone-mascot" src="/mascot-select.png" alt="" />
-              <p className="dropzone-title">사진을 끌어다 놓거나 클릭해서 선택</p>
-              <p className="dropzone-sub">붙여넣기(Ctrl+V)도 됩니다 · JPG · PNG</p>
+            <UploadDropzone
+              title="사진을 끌어다 놓거나 클릭해서 선택"
+              sub="붙여넣기(Ctrl+V)도 됩니다 · JPG · PNG"
+              onPick={loadFile}
+            >
               <div className="samples">
                 <span>예시로 체험:</span>
                 {SAMPLES.map((s) => (
                   <img key={s} src={s} alt="예시" onClick={(e) => { e.preventDefault(); loadURL(s) }} />
                 ))}
               </div>
-            </label>
+            </UploadDropzone>
           )}
 
-          {imageURL && !result && !isOutpaint && (
-            <div className="stage">
-              <canvas
-                ref={dispRef}
-                className={`stage-canvas tool-${tool}`}
-                onPointerDown={onDown}
-                onPointerMove={onMove}
-                onPointerUp={onUp}
-                onPointerLeave={() => { onUp(); setCursor(null) }}
-              />
-              {smartBusy && <div className="stage-hint">영역을 찾는 중…</div>}
-              {!smartBusy && !strokes.length && !busy && (
-                <div className="stage-hint">{tool === 'smart' ? '지울 대상을 클릭하세요' : mode.hint}</div>
-              )}
-              {busy && (
-                <div className="stage-busy">
-                  <div className="scanline" />
-                  <img src="/mascot-erase.png" alt="" />
-                  <span>지우가 지우는 중…</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {imageURL && !result && isOutpaint && (
-            <div className="stage">
-              <img className="stage-canvas" src={imageURL} alt="원본" style={{ outline: `${Math.round(expand / 3)}px solid var(--blue-tint-2)` }} />
-              {!busy && <div className="stage-hint">바깥 파란 영역만큼 배경을 확장합니다</div>}
-              {busy && (
-                <div className="stage-busy">
-                  <div className="scanline" />
-                  <img src="/mascot-erase.png" alt="" />
-                  <span>배경을 그려내는 중…</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {result && (
-            <div className="stage stage-result">
-              {result.wide ? (
-                <img className="stage-canvas" src={result.url} alt="결과" />
-              ) : (
-                <BeforeAfter
-                  before={imageURL}
-                  after={result.url}
-                  beforeLabel="원본"
-                  afterLabel="완료"
-                  initial={15}
-                  style={natural ? {
-                    aspectRatio: `${natural.w} / ${natural.h}`,
-                    maxWidth: `${Math.round(560 * (natural.w / natural.h))}px`,
-                  } : undefined}
-                />
-              )}
-            </div>
+          {imageURL && (
+            <StudioStage
+              imageURL={imageURL}
+              result={result}
+              isOutpaint={isOutpaint}
+              natural={natural}
+              expand={expand}
+              busy={busy}
+              canvasRef={dispRef}
+              tool={tool}
+              hint={mode.hint}
+              smartBusy={smartBusy}
+              hasStrokes={strokes.length > 0}
+              handlers={{ onDown, onMove, onUp, onLeave: () => { onUp(); setCursor(null) } }}
+            />
           )}
 
           {/* 캔버스 밖에서도 hidden 마스크 유지 */}
           <canvas ref={maskRef} style={{ display: 'none' }} />
         </div>
 
-        <aside className="toolbar">
-          {!result ? (
-            isOutpaint ? (
-              <>
-                <div className="tool-group">
-                  <span className="tool-label">확장 비율 · {expand}%</span>
-                  <input type="range" min="10" max="60" value={expand} onChange={(e) => setExpand(+e.target.value)} />
-                </div>
-                {error && <p className="error">{error}</p>}
-                <button className="btn btn-primary btn-block btn-run" onClick={runOutpaint} disabled={!imageURL || busy}>
-                  {busy ? '확장 중…' : <><Icon.sparkle width="18" height="18" /> 배경 확장</>}
-                </button>
-                <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} /></label>
-              </>
-            ) : (
-              <>
-                <div className="tool-group">
-                  <span className="tool-label">도구</span>
-                  <div className="seg">
-                    <button className={tool === 'smart' ? 'on' : ''} onClick={() => setTool('smart')}><Icon.wand width="16" height="16" /> 스마트</button>
-                    <button className={tool === 'brush' ? 'on' : ''} onClick={() => setTool('brush')}><Icon.brush width="16" height="16" /> 브러시</button>
-                    <button className={tool === 'erase' ? 'on' : ''} onClick={() => setTool('erase')}><Icon.eraser width="16" height="16" /> 지우개</button>
-                  </div>
-                  {tool === 'smart' && <p className="tool-tip">지울 대상을 클릭하면 AI가 영역을 자동으로 선택합니다.</p>}
-                </div>
-                <div className="tool-group">
-                  <span className="tool-label">브러시 크기 · {brushSize}px</span>
-                  <input type="range" min="6" max="90" value={brushSize} onChange={(e) => setBrushSize(+e.target.value)} />
-                </div>
-                <div className="tool-group">
-                  <span className="tool-label">편집</span>
-                  <div className="btn-row">
-                    <button className="btn btn-outline btn-sm" onClick={undo} disabled={!strokes.length}><Icon.undo /> 되돌리기</button>
-                    <button className="btn btn-outline btn-sm" onClick={redoAct} disabled={!redo.length}><Icon.redo /> 다시</button>
-                  </div>
-                  <button className="btn btn-ghost btn-sm btn-block" onClick={() => { setStrokes([]); setRedo([]) }} disabled={!strokes.length}>전체 지우기</button>
-                </div>
-                {error && <p className="error">{error}</p>}
-                <button className="btn btn-primary btn-block btn-run" onClick={runRemoval} disabled={!imageURL || busy || !strokes.length}>
-                  {busy ? '지우는 중…' : <><Icon.sparkle width="18" height="18" /> 지우기 실행</>}
-                </button>
-                <label className="btn btn-ghost btn-sm btn-block">다른 사진<input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} /></label>
-              </>
-            )
-          ) : (
-            <>
-              <div className="tool-group">
-                <img className="result-mascot" src="/mascot-perfect.png" alt="" />
-                <span className="tool-label tool-label-done"><Icon.check /> 완성됐어요</span>
-                <p className="result-desc">HD 원본으로 저장하거나 클립보드에 복사하세요.</p>
-                {result.elapsed && (
-                  <p className="result-meta">
-                    {engine ? `${engine} 엔진 · ` : ''}처리 {(result.elapsed / 1000).toFixed(1)}초
-                  </p>
-                )}
-              </div>
-              <button className="btn btn-primary btn-block" onClick={download}><Icon.download /> 이미지 저장</button>
-              <button className="btn btn-outline btn-block" onClick={copy}><Icon.copy /> {copied ? '복사됨!' : '클립보드 복사'}</button>
-              {!isOutpaint && <button className="btn btn-outline btn-block" onClick={continueEdit}>결과 이어서 지우기</button>}
-              <button className="btn btn-ghost btn-sm btn-block" onClick={() => setResult(null)}>다시 편집</button>
-              <label className="btn btn-ghost btn-sm btn-block">새 사진<input type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files[0])} /></label>
-            </>
-          )}
-        </aside>
+        <StudioToolbar
+          result={result}
+          isOutpaint={isOutpaint}
+          resultActions={{
+            engine, copied,
+            onDownload: download, onCopy: copy, onContinue: continueEdit,
+            onReEdit: () => setResult(null), onPick: loadFile,
+          }}
+          outpaint={{
+            expand, setExpand, error, busy,
+            canRun: Boolean(imageURL), onRun: runOutpaint, onPick: loadFile,
+          }}
+          brush={{
+            tool, setTool, brushSize, setBrushSize, strokes, redo,
+            onUndo: undo, onRedo: redoAct,
+            onClear: () => { setStrokes([]); setRedo([]) },
+            error, busy, canRun: Boolean(imageURL), onRun: runRemoval, onPick: loadFile,
+          }}
+        />
       </div>
       )}
 
