@@ -69,7 +69,7 @@ uvicorn app:app --port 8000
 |------|------|
 | **LaMa** (기본) | 대형 마스크·복잡한 배경에 강한 최상 품질 (`big-lama.pt` 필요) |
 | **DeepFillv2 · PyTorch** | gated conv + contextual attention 기반 실제 DeepFillv2. 최초 사용 시 가중치(약 40MB) 자동 다운로드 |
-| **DeepFillv2 · 연구모델(TF)** | 프로젝트 초기에 직접 학습한 GeneratorMultiColumn 체크포인트 (`training_checkpoints/`가 있을 때 활성화) |
+| **DeepFillv2 · 연구모델(TF)** | 프로젝트 초기에 직접 학습한 GeneratorMultiColumn. 네트워크 정의는 `research_net.py`에 내장 — TensorFlow(Python ≤3.13, `requirements-research.txt`)와 학습 체크포인트(`training_checkpoints/`)를 넣으면 활성화 |
 | **OpenCV Telea** | 딥러닝 없이 항상 동작하는 고전 폴백 |
 
 기본 모델은 환경변수 `INPAINT_ENGINE`(예: `lama`, `deepfill`, `telea`)로 바꿀 수 있고,
