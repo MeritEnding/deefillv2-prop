@@ -48,6 +48,18 @@ public class InpaintController {
         }
     }
 
+    /** 사용자 모델 선택기용 카탈로그를 추론 서비스에서 프록시한다. */
+    @GetMapping(value = "/engines", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> engines() {
+        try {
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(inferenceClient.engines());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("{\"default\":null,\"engines\":[]}");
+        }
+    }
+
     @PostMapping(value = "/upscale", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> upscale(@RequestPart("image") MultipartFile image,
                                           @RequestParam(value = "scale", defaultValue = "2") int scale) throws IOException {
@@ -69,21 +81,24 @@ public class InpaintController {
 
     @PostMapping(value = "/inpaint", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> inpaint(@RequestPart("image") MultipartFile image,
-                                          @RequestPart("mask") MultipartFile mask) throws IOException {
+                                          @RequestPart("mask") MultipartFile mask,
+                                          @RequestParam(value = "engine", required = false) String engine) throws IOException {
         validateImage(image, "원본 이미지");
         validateImage(mask, "마스크");
 
         long started = System.currentTimeMillis();
-        byte[] result = inferenceClient.inpaint(image, mask);
+        ResponseEntity<byte[]> result = inferenceClient.inpaint(image, mask, engine);
         long elapsed = System.currentTimeMillis() - started;
         auditService.record("web", "inpaint", 0, elapsed, "ok");
 
+        // 실제 사용된 모델은 추론 서비스가 X-Engine 헤더로 알려준다(없으면 마지막 health 값).
+        String used = result.getHeaders().getFirst("X-Engine");
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
                 .header("Content-Disposition", "inline; filename=\"jium-result.png\"")
-                .header("X-Engine", inferenceClient.engineName())
+                .header("X-Engine", used != null ? used : inferenceClient.engineName())
                 .header("X-Elapsed-Ms", String.valueOf(elapsed))
-                .body(result);
+                .body(result.getBody());
     }
 
     @PostMapping(value = "/detect", produces = MediaType.APPLICATION_JSON_VALUE)
